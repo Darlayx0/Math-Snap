@@ -86,30 +86,30 @@ const app = document.querySelector('#app');
 function renderIcon(name, className = '') {
   const classes = ['ui-icon', className].filter(Boolean).join(' ');
   const icons = {
-    bolt: '<path d="M14 2 6.5 11h4L10 22l7.5-9h-4z" />',
-    time: '<circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" />',
-    check: '<path d="m7.5 12.5 3 3 6-7" />',
-    close: '<path d="m8 8 8 8M16 8l-8 8" />',
-    trophy: '<path d="M8 5h8v3a4 4 0 0 1-8 0z" /><path d="M10 16v2m4-2v2m-6 0h8" /><path d="M8 6H6a2 2 0 0 0 2 4m8-4h2a2 2 0 0 1-2 4" />',
-    target: '<circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="3.5" /><path d="M12 5v2m0 10v2m7-7h-2M7 12H5" />',
-    pause: '<path d="M9 6v12M15 6v12" />',
-    play: '<path d="m9 7 8 5-8 5z" />',
-    warning: '<path d="M12 4 4.5 18h15z" /><path d="M12 9v4.5m0 2.5h.01" />',
-    refresh: '<path d="M18 8V4h-4" /><path d="M6 16v4h4" /><path d="M18 4a8 8 0 0 0-13 3m1 13a8 8 0 0 0 13-3" />',
-    home: '<path d="M4 11.5 12 5l8 6.5" /><path d="M6.5 10.5V19h11v-8.5" />',
-    chart: '<path d="M6 18V9m6 9V6m6 12v-5" /><path d="M4 18h16" />',
-    spark: '<path d="m12 4 1.8 4.2L18 10l-4.2 1.8L12 16l-1.8-4.2L6 10l4.2-1.8z" />',
-    plus: '<path d="M12 6v12M6 12h12" />',
-    minus: '<path d="M6 12h12" />',
-    multiply: '<path d="m8 8 8 8M16 8l-8 8" />',
-    divide: '<path d="M7 12h10M12 7.5h.01M12 16.5h.01" />',
-    answer: '<path d="M5.5 6.5h13v10h-13z" /><path d="M8.5 10h7m-7 3h4" /><path d="M3.5 8.5h2m-2 5h2" />',
-    delete: '<path d="m6 7 3-3h10l3 8-3 8H9l-3-3" /><path d="m11 10 5 5m0-5-5 5" />',
+    bolt: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linejoin="round" />',
+    time: '<circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" stroke-linecap="round" stroke-linejoin="round" />',
+    check: '<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />',
+    close: '<path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />',
+    trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M12 17v5M9 22h6M8 4h8v5a4 4 0 0 1-8 0V4z" stroke-linecap="round" stroke-linejoin="round" />',
+    target: '<circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 2v2M12 20v2M22 12h-2M4 12H2" stroke-linecap="round" />',
+    pause: '<rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" />',
+    play: '<path d="M8 5v14l11-7z" stroke-linejoin="round" />',
+    warning: '<path d="M12 9v2M12 15h.01M22 12A10 10 0 1 1 2 12a10 10 0 0 1 20 0z" stroke-linecap="round" stroke-linejoin="round" />',
+    refresh: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke-linecap="round" stroke-linejoin="round" /><path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round" />',
+    home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round" /><path d="M9 22V12h6v10" stroke-linecap="round" stroke-linejoin="round" />',
+    chart: '<path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round" stroke-linejoin="round" />',
+    spark: '<path d="M12 2.5l2.1 5.4 5.4 2.1-5.4 2.1L12 17.5l-2.1-5.4-5.4-2.1 5.4-2.1L12 2.5z" stroke-linejoin="round" />',
+    plus: '<path d="M12 5v14M5 12h14" stroke-linecap="round" />',
+    minus: '<path d="M5 12h14" stroke-linecap="round" />',
+    multiply: '<path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />',
+    divide: '<path d="M5 12h14M12 6h.01M12 18h.01" stroke-linecap="round" stroke-linejoin="round" />',
+    answer: '<path d="M4 7h16v10H4z" stroke-linejoin="round" /><path d="M9 12h6" stroke-linecap="round" />',
+    delete: '<path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" stroke-linecap="round" stroke-linejoin="round" /><path d="M18 9l-6 6M12 9l6 6" stroke-linecap="round" stroke-linejoin="round" />',
   };
 
   return `
     <svg class="${classes}" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      ${icons[name]}
+      ${icons[name] || ''}
     </svg>
   `;
 }
@@ -134,17 +134,7 @@ function renderLabelIcon(name, text) {
   return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
 }
 
-function renderStatCard({ tone, icon, label, value, id, valueClass = '' }) {
-  return `
-    <div class="stat-card ${tone}">
-      <span class="stat-label">
-        <span class="stat-card-icon">${renderIcon(icon, 'stats-icon')}</span>
-        ${label}
-      </span>
-      <span class="stat-val ${valueClass}" id="${id}">${value}</span>
-    </div>
-  `;
-}
+
 
 // ============================================
 // Detect touch device
@@ -352,14 +342,15 @@ function renderGame() {
       <div class="game-screen glass-panel">
         <div class="game-top-bar">
           <div class="game-mode-label">${renderOperationIcon(state.operation, 'inline-icon')} <span>${state.level.label}</span></div>
-          <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
-        </div>
+          
+          <div class="inline-stats">
+            <div class="inline-stat time" title="Time: ${state.timeLeft}s"><span class="stat-icon">${renderIcon('time', 'stats-icon')}</span><span class="stat-val ${timeWarn}" id="time">${state.timeLeft}s</span></div>
+            <div class="inline-stat score" title="Score: ${state.score}"><span class="stat-icon">${renderIcon('spark', 'stats-icon')}</span><span class="stat-val" id="score">${state.score}</span></div>
+            <div class="inline-stat correct" title="Correct: ${state.correct}"><span class="stat-icon">${renderIcon('check', 'stats-icon')}</span><span class="stat-val" id="correct">${state.correct}</span></div>
+            <div class="inline-stat wrong" title="Wrong: ${state.wrong}"><span class="stat-icon">${renderIcon('close', 'stats-icon')}</span><span class="stat-val" id="wrong">${state.wrong}</span></div>
+          </div>
 
-        <div class="stats-bar">
-          ${renderStatCard({ tone: 'time', icon: 'time', label: 'Time', value: `${state.timeLeft}s`, id: 'time', valueClass: timeWarn })}
-          ${renderStatCard({ tone: 'score', icon: 'spark', label: 'Score', value: state.score, id: 'score' })}
-          ${renderStatCard({ tone: 'correct', icon: 'check', label: 'Correct', value: state.correct, id: 'correct' })}
-          ${renderStatCard({ tone: 'wrong', icon: 'close', label: 'Wrong', value: state.wrong, id: 'wrong' })}
+          <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
 
         <div class="problem-container">
