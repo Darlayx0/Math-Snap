@@ -148,6 +148,16 @@ body::after {
 /* ============================================
    App Container
    ============================================ */
+
+/* Text Utilities */
+.text-primary { color: var(--neon-cyan); }
+.text-green { color: var(--success); }
+.text-red { color: var(--error); }
+.glow-magenta { color: var(--neon-magenta); text-shadow: 0 0 12px var(--neon-magenta-dim); }
+.glow-amber { color: var(--neon-amber); text-shadow: 0 0 12px var(--neon-amber-dim); }
+.glow-green { color: var(--success); text-shadow: 0 0 12px rgba(0, 230, 128, 0.4); }
+.glow-red { color: var(--error); text-shadow: 0 0 12px rgba(255, 74, 110, 0.4); }
+
 #app {
   position: relative;
   z-index: 1;

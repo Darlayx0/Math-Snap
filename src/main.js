@@ -73,10 +73,14 @@ let state = {
   score: 0,
   correct: 0,
   wrong: 0,
+  combo: 0,
+  maxCombo: 0,
+  comboTimer: 10,
   timeLeft: GAME_DURATION,
   currentAnswer: 0,
   currentProblem: '',
   timerInterval: null,
+  comboInterval: null,
   inputValue: '',
   useKeypad: false,
 };
@@ -154,11 +158,17 @@ function getHighScore(op, max) {
 function getHighCorrect(op, max) {
   return parseInt(localStorage.getItem(`mathSnap_${op}_${max}_HC`)) || 0;
 }
+function getHighCombo(op, max) {
+  return parseInt(localStorage.getItem(`mathSnap_${op}_${max}_HCO`)) || 0;
+}
 function setHighScore(op, max, val) {
   localStorage.setItem(`mathSnap_${op}_${max}_HS`, val);
 }
 function setHighCorrect(op, max, val) {
   localStorage.setItem(`mathSnap_${op}_${max}_HC`, val);
+}
+function setHighCombo(op, max, val) {
+  localStorage.setItem(`mathSnap_${op}_${max}_HCO`, val);
 }
 
 function clearAllProgress() {
@@ -238,18 +248,33 @@ function renderMenu() {
         
         <div class="divider"></div>
         
-        <div class="rules-box">
-          <div class="rule-item"><span class="rule-icon">${renderIcon('time', 'rule-svg')}</span> <span><strong>60 seconds</strong> to solve as many as you can</span></div>
-          <div class="rule-item"><span class="rule-icon">${renderIcon('check', 'rule-svg')}</span> <span>Correct: <strong class="text-green">+${CORRECT_SCORE} score</strong></span></div>
-          <div class="rule-item"><span class="rule-icon">${renderIcon('close', 'rule-svg')}</span> <span>Wrong: <strong class="text-red">-${WRONG_PENALTY} score</strong></span></div>
-        </div>
-
         <div class="menu-actions">
+          <button class="menu-btn primary-btn" id="open-guide">Panduan Permainan</button>
           <button class="danger-link" id="reset-progress-menu">Reset All Progress</button>
         </div>
       </div>
     </div>
+    
+    <div class="modal guide-modal" id="guide-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; padding:1rem;">
+      <div class="modal-content glass-panel" style="max-width:400px; padding: 2rem; width:100%;">
+        <h2 style="font-size:1.5rem; margin-bottom:1rem; color:var(--neon-cyan)">Panduan Permainan</h2>
+        <div class="rules-box" style="margin: 1.5rem 0; border:none; padding:0; background:transparent">
+          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon">${renderIcon('time', 'rule-svg')}</span> <span style="line-height:1.4"><strong>60 detik</strong> untuk skor setinggi mungkin</span></div>
+          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon glow-green">${renderIcon('check', 'rule-svg')}</span> <span style="line-height:1.4">Benar: <strong class="text-green">+100 Base Score</strong> & Combo bertambah.</span></div>
+          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon glow-magenta" style="color:var(--neon-magenta)">${renderIcon('bolt', 'rule-svg')}</span> <span style="line-height:1.4">Combo Multiplier memberikan bonus. Turun otomatis tiap 10 detik.</span></div>
+          <div class="rule-item"><span class="rule-icon glow-red" style="color:var(--error)">${renderIcon('close', 'rule-svg')}</span> <span style="line-height:1.4">Salah: Combo <strong>hangus</strong>, tapi skor tetap. Soal tidak akan berganti!</span></div>
+        </div>
+        <button class="menu-btn primary-btn" id="close-guide" style="width:100%; margin-top:1rem;">Tutup</button>
+      </div>
+    </div>
   `;
+
+  document.getElementById('open-guide')?.addEventListener('click', () => {
+    document.getElementById('guide-modal').style.display = 'flex';
+  });
+  document.getElementById('close-guide')?.addEventListener('click', () => {
+    document.getElementById('guide-modal').style.display = 'none';
+  });
 
   document.querySelectorAll('.op-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -270,6 +295,8 @@ function renderDifficulty() {
   const hs = (lvl) => getHighScore(state.operation, lvl.max);
   const hc = (lvl) => getHighCorrect(state.operation, lvl.max);
 
+  const hco = (lvl) => getHighCombo(state.operation, lvl.max);
+
   app.innerHTML = `
     <div class="game-container">
       <div class="header">
@@ -286,8 +313,9 @@ function renderDifficulty() {
               <div class="diff-main">
                 <div class="diff-label">${lvl.label}</div>
                 <div class="diff-meta">
-                  <span class="diff-stat">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
-                  <span class="diff-stat">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
+                  <span class="diff-stat glow-amber">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
+                  <span class="diff-stat glow-green">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
+                  <span class="diff-stat glow-magenta">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
                 </div>
               </div>
               <div class="diff-side">
@@ -331,12 +359,8 @@ function renderGame() {
 
   app.innerHTML = `
     <div class="game-container">
-      <div class="header">
+      <div class="header" style="display:none">
         <h1>Math Snap</h1>
-        <div class="high-scores">
-          <div class="hs-item"><span class="hs-icon">${renderIcon('trophy', 'mini-icon')}</span> Best: <span id="hs">${hsVal}</span></div>
-          <div class="hs-item"><span class="hs-icon">${renderIcon('target', 'mini-icon')}</span> Most: <span id="hc">${hcVal}</span></div>
-        </div>
       </div>
 
       <div class="game-screen glass-panel">
@@ -344,6 +368,7 @@ function renderGame() {
           <div class="game-mode-label">${renderOperationIcon(state.operation, 'inline-icon')} <span>${state.level.label}</span></div>
           
           <div class="inline-stats">
+            <div class="inline-stat combo glow-magenta" title="Combo Multiplier" id="combo-stat" style="display:none; margin-right:0.5rem"><span class="stat-icon" style="color:var(--neon-magenta)">${renderIcon('bolt', 'stats-icon')}</span><span class="stat-val" id="combo" style="color:var(--neon-magenta)">0x</span></div>
             <div class="inline-stat time" title="Time: ${state.timeLeft}s"><span class="stat-icon">${renderIcon('time', 'stats-icon')}</span><span class="stat-val ${timeWarn}" id="time">${state.timeLeft}s</span></div>
             <div class="inline-stat score" title="Score: ${state.score}"><span class="stat-icon">${renderIcon('spark', 'stats-icon')}</span><span class="stat-val" id="score">${state.score}</span></div>
             <div class="inline-stat correct" title="Correct: ${state.correct}"><span class="stat-icon">${renderIcon('check', 'stats-icon')}</span><span class="stat-val" id="correct">${state.correct}</span></div>
@@ -353,7 +378,11 @@ function renderGame() {
           <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
 
-        <div class="problem-container">
+        <div class="combo-bar-container" id="combo-bar-container" style="display:none; width:100%; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; margin-bottom:1rem; overflow:hidden">
+          <div class="combo-bar-fill" id="combo-bar-fill" style="height:100%; width:100%; background:var(--neon-magenta); transition:width 1s linear, background-color 0.3s"></div>
+        </div>
+
+        <div class="problem-container" style="padding-top:0.5rem">
           <div id="problem" class="problem-text">${state.currentProblem}</div>
         </div>
 
@@ -516,6 +545,9 @@ function startGame() {
   state.score = 0;
   state.correct = 0;
   state.wrong = 0;
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.comboTimer = 10;
   state.timeLeft = GAME_DURATION;
   state.inputValue = '';
   state.useKeypad = isTouchDevice();
@@ -523,6 +555,7 @@ function startGame() {
   generateProblem();
   render();
   animateProblem();
+  updateComboUI();
 
   state.timerInterval = setInterval(() => {
     if (state.screen !== 'playing') return;
@@ -536,6 +569,18 @@ function startGame() {
     }
     if (state.timeLeft <= 0) {
       endGame();
+    }
+  }, 1000);
+
+  state.comboInterval = setInterval(() => {
+    if (state.screen !== 'playing') return;
+    if (state.combo > 0) {
+      state.comboTimer--;
+      if (state.comboTimer <= 0) {
+        state.combo = Math.max(0, state.combo - 1);
+        state.comboTimer = 10;
+      }
+      updateComboUI();
     }
   }, 1000);
 }
@@ -592,25 +637,66 @@ function checkAnswer(userAnswer) {
     : userAnswer;
 
   if (normalizedAnswer === state.currentAnswer) {
-    state.score += CORRECT_SCORE;
+    const elapsed = 10 - state.comboTimer;
+    const bonus = Math.max(0, (state.combo * 10) - elapsed);
+    const totalAward = CORRECT_SCORE + bonus;
+    
+    state.score += totalAward;
     state.correct += 1;
-    showFeedback('Correct', 'success');
+    
+    state.combo += 1;
+    state.maxCombo = Math.max(state.maxCombo, state.combo);
+    state.comboTimer = 10;
+    
+    showFeedback('+'+totalAward, 'success');
+    
+    generateProblem();
+    animateProblem();
   } else {
-    state.score -= WRONG_PENALTY;
     state.wrong += 1;
+    state.combo = 0;
+    state.comboTimer = 10;
     showFeedback('Wrong', 'error');
   }
 
-  // Update UI
+  updateStatsUI();
+  updateComboUI();
+}
+
+function updateStatsUI() {
   const scoreEl = document.getElementById('score');
   const correctEl = document.getElementById('correct');
   const wrongEl = document.getElementById('wrong');
   if (scoreEl) scoreEl.textContent = state.score;
   if (correctEl) correctEl.textContent = state.correct;
   if (wrongEl) wrongEl.textContent = state.wrong;
+}
 
-  generateProblem();
-  animateProblem();
+function updateComboUI() {
+  const comboStat = document.getElementById('combo-stat');
+  const comboVal = document.getElementById('combo');
+  const comboBarContainer = document.getElementById('combo-bar-container');
+  const comboBarFill = document.getElementById('combo-bar-fill');
+
+  if (state.combo > 0) {
+    if (comboStat) {
+      comboStat.style.display = 'flex';
+      comboVal.textContent = state.combo + 'x';
+    }
+    if (comboBarContainer) {
+      comboBarContainer.style.display = 'block';
+      const pct = (state.comboTimer / 10) * 100;
+      comboBarFill.style.width = pct + '%';
+      if (state.comboTimer <= 3) {
+        comboBarFill.classList.add('danger');
+      } else {
+        comboBarFill.classList.remove('danger');
+      }
+    }
+  } else {
+    if (comboStat) comboStat.style.display = 'none';
+    if (comboBarContainer) comboBarContainer.style.display = 'none';
+  }
 }
 
 function showFeedback(text, type) {
@@ -667,6 +753,7 @@ function pauseGame() {
   if (state.screen !== 'playing') return;
   state.screen = 'paused';
   clearInterval(state.timerInterval);
+  clearInterval(state.comboInterval);
   document.removeEventListener('keydown', handlePhysicalKeyboard);
 
   const overlay = document.createElement('div');
@@ -710,6 +797,18 @@ function resumeGame() {
     }
   }, 1000);
 
+  state.comboInterval = setInterval(() => {
+    if (state.screen !== 'playing') return;
+    if (state.combo > 0) {
+      state.comboTimer--;
+      if (state.comboTimer <= 0) {
+        state.combo = Math.max(0, state.combo - 1);
+        state.comboTimer = 10;
+      }
+      updateComboUI();
+    }
+  }, 1000);
+
   // Re-bind input
   if (state.useKeypad) {
     document.addEventListener('keydown', handlePhysicalKeyboard);
@@ -723,6 +822,7 @@ function restartGame() {
   const overlay = document.getElementById('pause-overlay');
   if (overlay) overlay.remove();
   clearInterval(state.timerInterval);
+  clearInterval(state.comboInterval);
   startGame();
 }
 
@@ -730,6 +830,7 @@ function backToMenu() {
   const overlay = document.getElementById('pause-overlay');
   if (overlay) overlay.remove();
   clearInterval(state.timerInterval);
+  clearInterval(state.comboInterval);
   document.removeEventListener('keydown', handlePhysicalKeyboard);
   state.screen = 'menu';
   render();
@@ -740,12 +841,15 @@ function backToMenu() {
 // ============================================
 function endGame() {
   clearInterval(state.timerInterval);
+  clearInterval(state.comboInterval);
   document.removeEventListener('keydown', handlePhysicalKeyboard);
   state.screen = 'end';
 
   // Update high scores
   const prevHS = getHighScore(state.operation, state.level.max);
   const prevHC = getHighCorrect(state.operation, state.level.max);
+  const prevHCO = getHighCombo(state.operation, state.level.max);
+  
   let newRecord = false;
 
   if (state.score > prevHS) {
@@ -754,6 +858,10 @@ function endGame() {
   }
   if (state.correct > prevHC) {
     setHighCorrect(state.operation, state.level.max, state.correct);
+    newRecord = true;
+  }
+  if (state.maxCombo > prevHCO) {
+    setHighCombo(state.operation, state.level.max, state.maxCombo);
     newRecord = true;
   }
 
@@ -779,10 +887,14 @@ function renderEnd(newRecord = false) {
             <div class="stat-value text-primary">${state.score}</div>
           </div>
           <div class="stat-box">
+            <div class="stat-label">Max Combo</div>
+            <div class="stat-value glow-magenta" style="color:var(--neon-magenta)">${state.maxCombo}x</div>
+          </div>
+          <div class="stat-box">
             <div class="stat-label">Correct</div>
             <div class="stat-value text-green">${state.correct}</div>
           </div>
-          <div class="stat-box">
+          <div class="stat-box" style="display:none">
             <div class="stat-label">Wrong</div>
             <div class="stat-value text-red">${state.wrong}</div>
           </div>
