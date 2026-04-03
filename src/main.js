@@ -108,6 +108,12 @@ function setHighCorrect(op, max, val) {
   localStorage.setItem(`mathSnap_${op}_${max}_HC`, val);
 }
 
+function clearAllProgress() {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith('mathSnap_'))
+    .forEach((key) => localStorage.removeItem(key));
+}
+
 // ============================================
 // Background Math Symbols
 // ============================================
@@ -184,6 +190,10 @@ function renderMenu() {
           <div class="rule-item"><span class="rule-icon">✅</span> <span>Correct: <strong class="text-green">+${CORRECT_SCORE} score</strong></span></div>
           <div class="rule-item"><span class="rule-icon">❌</span> <span>Wrong: <strong class="text-red">−${WRONG_PENALTY} score</strong></span></div>
         </div>
+
+        <div class="menu-actions">
+          <button class="danger-link" id="reset-progress-menu">Reset All Progress</button>
+        </div>
       </div>
     </div>
   `;
@@ -195,6 +205,8 @@ function renderMenu() {
       render();
     });
   });
+
+  document.getElementById('reset-progress-menu').addEventListener('click', confirmResetProgress);
 }
 
 // ============================================
@@ -218,13 +230,24 @@ function renderDifficulty() {
         <div class="diff-grid">
           ${op.levels.map((lvl, i) => `
             <div class="diff-card" data-idx="${i}" id="diff-${i}">
-              <div class="diff-label">${lvl.label}</div>
-              <div class="diff-stars">${lvl.stars}</div>
+              <div class="diff-main">
+                <div class="diff-label">${lvl.label}</div>
+                <div class="diff-meta">
+                  <span class="diff-stat">🏆 Best: ${hs(lvl)}</span>
+                  <span class="diff-stat">🎯 Most: ${hc(lvl)}</span>
+                </div>
+              </div>
+              <div class="diff-side">
+                <div class="diff-stars">${lvl.stars}</div>
+              </div>
             </div>
           `).join('')}
         </div>
 
-        <button class="back-link" id="back-menu">← Back to Menu</button>
+        <div class="screen-actions">
+          <button class="back-link" id="back-menu">← Back to Menu</button>
+          <button class="danger-link" id="reset-progress-diff">Reset All Progress</button>
+        </div>
       </div>
     </div>
   `;
@@ -240,6 +263,8 @@ function renderDifficulty() {
     state.screen = 'menu';
     render();
   });
+
+  document.getElementById('reset-progress-diff').addEventListener('click', confirmResetProgress);
 }
 
 // ============================================
@@ -542,6 +567,43 @@ function showFeedback(text, type) {
   fb.textContent = text;
   container.appendChild(fb);
   setTimeout(() => fb.remove(), 900);
+}
+
+function confirmResetProgress() {
+  if (document.getElementById('confirm-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pause-overlay';
+  overlay.id = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="pause-menu confirm-menu">
+      <div class="pause-icon">⚠️</div>
+      <h2>Delete All Progress?</h2>
+      <p class="confirm-text">This will permanently remove every high score and best correct-answer record for all game modes and difficulty levels.</p>
+      <div class="pause-btn-group">
+        <button class="pause-action-btn danger-btn" id="confirm-reset-btn">Yes, Delete Everything</button>
+        <button class="pause-action-btn restart-btn" id="cancel-reset-btn">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('confirm-reset-btn').addEventListener('click', () => {
+    clearAllProgress();
+    overlay.remove();
+    render();
+  });
+
+  document.getElementById('cancel-reset-btn').addEventListener('click', () => {
+    overlay.remove();
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  });
 }
 
 // ============================================
