@@ -137,11 +137,11 @@ function renderLabelIcon(name, text) {
 function renderStatCard({ tone, icon, label, value, id, valueClass = '' }) {
   return `
     <div class="stat-card ${tone}">
-      <div class="stat-card-icon">${renderIcon(icon, 'stats-icon')}</div>
-      <div class="stat-card-copy">
-        <span class="stat-label">${label}</span>
-        <span class="stat-val ${valueClass}" id="${id}">${value}</span>
-      </div>
+      <span class="stat-label">
+        <span class="stat-card-icon">${renderIcon(icon, 'stats-icon')}</span>
+        ${label}
+      </span>
+      <span class="stat-val ${valueClass}" id="${id}">${value}</span>
     </div>
   `;
 }

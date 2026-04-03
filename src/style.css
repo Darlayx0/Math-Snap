@@ -773,27 +773,28 @@ body::after {
 /* Stats Bar */
 .stats-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.8rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
 }
 
 .stat-card {
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.9rem;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  min-height: 88px;
-  padding: 1rem 1.05rem;
-  border-radius: calc(var(--radius-md) - 2px);
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.2rem;
+  border-radius: calc(var(--radius-md) - 4px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015)),
     rgba(5, 8, 18, 0.74);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 24px rgba(0, 0, 0, 0.24);
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  text-align: center;
 }
 
 .stat-card::before {
@@ -805,35 +806,38 @@ body::after {
 }
 
 .stat-card-icon {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.03);
+  display: inline-flex;
+  align-items: center;
+  margin-right: -0.1rem;
+}
+
+.stat-card-icon .stats-icon {
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
 .stat-card-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
+  display: none;
 }
 
 .stat-card .stat-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .stat-card .stat-val {
   font-weight: 700;
   font-family: var(--font-mono);
-  font-size: 1.35rem;
-  letter-spacing: -0.03em;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .stat-card.time {
@@ -1431,7 +1435,9 @@ body::after {
   .menu-actions { flex-direction: column; align-items: stretch; }
   .back-link,
   .danger-link { justify-content: center; width: 100%; }
-  .stats-bar { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
+  .stat-card { padding: 0.5rem 0.1rem; }
+  .stat-card .stat-val { font-size: 1.05rem; }
 }
 
 @media (min-width: 481px) and (max-width: 768px) {
