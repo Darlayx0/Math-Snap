@@ -7,7 +7,7 @@ const OPERATIONS = {
   addition: {
     label: 'Addition',
     symbol: '+',
-    icon: '➕',
+    icon: 'plus',
     desc: 'Test your adding speed',
     levels: [
       { max: 100, label: '1–100 + 1–100', stars: '★' },
@@ -20,7 +20,7 @@ const OPERATIONS = {
   subtraction: {
     label: 'Subtraction',
     symbol: '-',
-    icon: '➖',
+    icon: 'minus',
     desc: 'Sharpen your subtraction speed',
     levels: [
       { max: 100, label: '1–100 - 1–100', stars: '★' },
@@ -33,7 +33,7 @@ const OPERATIONS = {
   multiplication: {
     label: 'Multiplication',
     symbol: '×',
-    icon: '✖️',
+    icon: 'multiply',
     desc: 'Master your times tables',
     levels: [
       { max: 10, label: '1–10 × 1–10', stars: '★' },
@@ -46,7 +46,7 @@ const OPERATIONS = {
   division: {
     label: 'Division',
     symbol: '÷',
-    icon: '➗',
+    icon: 'divide',
     desc: 'Practice fast decimal division',
     levels: [
       { max: 10, label: '1–10 ÷ 1–10', stars: '★' },
@@ -82,6 +82,69 @@ let state = {
 };
 
 const app = document.querySelector('#app');
+
+function renderIcon(name, className = '') {
+  const classes = ['ui-icon', className].filter(Boolean).join(' ');
+  const icons = {
+    bolt: '<path d="M14 2 6.5 11h4L10 22l7.5-9h-4z" />',
+    time: '<circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" />',
+    check: '<path d="m7.5 12.5 3 3 6-7" />',
+    close: '<path d="m8 8 8 8M16 8l-8 8" />',
+    trophy: '<path d="M8 5h8v3a4 4 0 0 1-8 0z" /><path d="M10 16v2m4-2v2m-6 0h8" /><path d="M8 6H6a2 2 0 0 0 2 4m8-4h2a2 2 0 0 1-2 4" />',
+    target: '<circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="3.5" /><path d="M12 5v2m0 10v2m7-7h-2M7 12H5" />',
+    pause: '<path d="M9 6v12M15 6v12" />',
+    play: '<path d="m9 7 8 5-8 5z" />',
+    warning: '<path d="M12 4 4.5 18h15z" /><path d="M12 9v4.5m0 2.5h.01" />',
+    refresh: '<path d="M18 8V4h-4" /><path d="M6 16v4h4" /><path d="M18 4a8 8 0 0 0-13 3m1 13a8 8 0 0 0 13-3" />',
+    home: '<path d="M4 11.5 12 5l8 6.5" /><path d="M6.5 10.5V19h11v-8.5" />',
+    chart: '<path d="M6 18V9m6 9V6m6 12v-5" /><path d="M4 18h16" />',
+    spark: '<path d="m12 4 1.8 4.2L18 10l-4.2 1.8L12 16l-1.8-4.2L6 10l4.2-1.8z" />',
+    plus: '<path d="M12 6v12M6 12h12" />',
+    minus: '<path d="M6 12h12" />',
+    multiply: '<path d="m8 8 8 8M16 8l-8 8" />',
+    divide: '<path d="M7 12h10M12 7.5h.01M12 16.5h.01" />',
+    answer: '<path d="M5.5 6.5h13v10h-13z" /><path d="M8.5 10h7m-7 3h4" /><path d="M3.5 8.5h2m-2 5h2" />',
+    delete: '<path d="m6 7 3-3h10l3 8-3 8H9l-3-3" /><path d="m11 10 5 5m0-5-5 5" />',
+  };
+
+  return `
+    <svg class="${classes}" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      ${icons[name]}
+    </svg>
+  `;
+}
+
+function renderOperationIcon(name, className = '') {
+  const iconMap = {
+    addition: 'plus',
+    subtraction: 'minus',
+    multiplication: 'multiply',
+    division: 'divide',
+  };
+  return renderIcon(iconMap[name], className);
+}
+
+function renderRankDots(rank) {
+  return `<div class="diff-rank" aria-label="Difficulty ${rank}">${Array.from({ length: 5 }, (_, index) => `
+    <span class="rank-dot ${index < rank ? 'active' : ''}"></span>
+  `).join('')}</div>`;
+}
+
+function renderLabelIcon(name, text) {
+  return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
+}
+
+function renderStatCard({ tone, icon, label, value, id, valueClass = '' }) {
+  return `
+    <div class="stat-card ${tone}">
+      <div class="stat-card-icon">${renderIcon(icon, 'stats-icon')}</div>
+      <div class="stat-card-copy">
+        <span class="stat-label">${label}</span>
+        <span class="stat-val ${valueClass}" id="${id}">${value}</span>
+      </div>
+    </div>
+  `;
+}
 
 // ============================================
 // Detect touch device
@@ -155,29 +218,29 @@ function renderMenu() {
     <div class="game-container">
       <div class="header">
         <h1>Math Snap</h1>
-        <div class="subtitle">⚡ Speed Math Challenge</div>
+        <div class="subtitle">${renderLabelIcon('bolt', 'Speed Math Challenge')}</div>
       </div>
 
       <div class="menu-screen glass-panel">
         <h2>Choose Operation</h2>
         <div class="operation-grid">
           <div class="op-card addition" data-op="addition" id="op-addition">
-            <div class="op-icon">➕</div>
+            <div class="op-icon">${renderOperationIcon('addition', 'operation-icon')}</div>
             <div class="op-label">Addition</div>
             <div class="op-desc">Add numbers fast</div>
           </div>
           <div class="op-card subtraction" data-op="subtraction" id="op-subtraction">
-            <div class="op-icon">➖</div>
+            <div class="op-icon">${renderOperationIcon('subtraction', 'operation-icon')}</div>
             <div class="op-label">Subtraction</div>
             <div class="op-desc">Subtract with speed</div>
           </div>
           <div class="op-card multiplication" data-op="multiplication" id="op-multiplication">
-            <div class="op-icon">✖️</div>
+            <div class="op-icon">${renderOperationIcon('multiplication', 'operation-icon')}</div>
             <div class="op-label">Multiply</div>
             <div class="op-desc">Times table mastery</div>
           </div>
           <div class="op-card division" data-op="division" id="op-division">
-            <div class="op-icon">➗</div>
+            <div class="op-icon">${renderOperationIcon('division', 'operation-icon')}</div>
             <div class="op-label">Division</div>
             <div class="op-desc">Decimal division drill</div>
           </div>
@@ -186,9 +249,9 @@ function renderMenu() {
         <div class="divider"></div>
         
         <div class="rules-box">
-          <div class="rule-item"><span class="rule-icon">⏱️</span> <span><strong>60 seconds</strong> to solve as many as you can</span></div>
-          <div class="rule-item"><span class="rule-icon">✅</span> <span>Correct: <strong class="text-green">+${CORRECT_SCORE} score</strong></span></div>
-          <div class="rule-item"><span class="rule-icon">❌</span> <span>Wrong: <strong class="text-red">−${WRONG_PENALTY} score</strong></span></div>
+          <div class="rule-item"><span class="rule-icon">${renderIcon('time', 'rule-svg')}</span> <span><strong>60 seconds</strong> to solve as many as you can</span></div>
+          <div class="rule-item"><span class="rule-icon">${renderIcon('check', 'rule-svg')}</span> <span>Correct: <strong class="text-green">+${CORRECT_SCORE} score</strong></span></div>
+          <div class="rule-item"><span class="rule-icon">${renderIcon('close', 'rule-svg')}</span> <span>Wrong: <strong class="text-red">-${WRONG_PENALTY} score</strong></span></div>
         </div>
 
         <div class="menu-actions">
@@ -224,7 +287,7 @@ function renderDifficulty() {
       </div>
 
       <div class="diff-screen glass-panel">
-        <div class="op-badge">${op.icon} <span>${op.label}</span></div>
+        <div class="op-badge">${renderOperationIcon(state.operation, 'badge-icon')} <span>${op.label}</span></div>
         <h2>Select Difficulty</h2>
         
         <div class="diff-grid">
@@ -233,12 +296,12 @@ function renderDifficulty() {
               <div class="diff-main">
                 <div class="diff-label">${lvl.label}</div>
                 <div class="diff-meta">
-                  <span class="diff-stat">🏆 Best: ${hs(lvl)}</span>
-                  <span class="diff-stat">🎯 Most: ${hc(lvl)}</span>
+                  <span class="diff-stat">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
+                  <span class="diff-stat">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
                 </div>
               </div>
               <div class="diff-side">
-                <div class="diff-stars">${lvl.stars}</div>
+                ${renderRankDots(lvl.stars.length)}
               </div>
             </div>
           `).join('')}
@@ -281,22 +344,22 @@ function renderGame() {
       <div class="header">
         <h1>Math Snap</h1>
         <div class="high-scores">
-          <div class="hs-item"><span class="hs-icon">🏆</span> Best: <span id="hs">${hsVal}</span></div>
-          <div class="hs-item"><span class="hs-icon">🎯</span> Most: <span id="hc">${hcVal}</span></div>
+          <div class="hs-item"><span class="hs-icon">${renderIcon('trophy', 'mini-icon')}</span> Best: <span id="hs">${hsVal}</span></div>
+          <div class="hs-item"><span class="hs-icon">${renderIcon('target', 'mini-icon')}</span> Most: <span id="hc">${hcVal}</span></div>
         </div>
       </div>
 
       <div class="game-screen glass-panel">
         <div class="game-top-bar">
-          <div class="game-mode-label">${op.icon} ${state.level.label}</div>
-          <button class="pause-btn" id="pause-btn" title="Pause">⏸</button>
+          <div class="game-mode-label">${renderOperationIcon(state.operation, 'inline-icon')} <span>${state.level.label}</span></div>
+          <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
 
         <div class="stats-bar">
-          <div class="stat-pill time-pill"><span class="stat-label">Time</span><span class="stat-val ${timeWarn}" id="time">${state.timeLeft}s</span></div>
-          <div class="stat-pill score-pill"><span class="stat-label">Score</span><span class="stat-val" id="score">${state.score}</span></div>
-          <div class="stat-pill correct-pill"><span class="stat-label">Correct</span><span class="stat-val" id="correct">${state.correct}</span></div>
-          <div class="stat-pill wrong-pill"><span class="stat-label">Wrong</span><span class="stat-val" id="wrong">${state.wrong}</span></div>
+          ${renderStatCard({ tone: 'time', icon: 'time', label: 'Time', value: `${state.timeLeft}s`, id: 'time', valueClass: timeWarn })}
+          ${renderStatCard({ tone: 'score', icon: 'spark', label: 'Score', value: state.score, id: 'score' })}
+          ${renderStatCard({ tone: 'correct', icon: 'check', label: 'Correct', value: state.correct, id: 'correct' })}
+          ${renderStatCard({ tone: 'wrong', icon: 'close', label: 'Wrong', value: state.wrong, id: 'wrong' })}
         </div>
 
         <div class="problem-container">
@@ -374,7 +437,7 @@ function renderKeypad() {
         <button class="key-btn" data-key="7">7</button>
         <button class="key-btn" data-key="8">8</button>
         <button class="key-btn" data-key="9">9</button>
-        <button class="key-btn key-delete" data-key="del">⌫</button>
+        <button class="key-btn key-delete" data-key="del">${renderIcon('delete', 'key-icon')}</button>
         <button class="key-btn" data-key="4">4</button>
         <button class="key-btn" data-key="5">5</button>
         <button class="key-btn" data-key="6">6</button>
@@ -382,10 +445,10 @@ function renderKeypad() {
         <button class="key-btn" data-key="1">1</button>
         <button class="key-btn" data-key="2">2</button>
         <button class="key-btn" data-key="3">3</button>
-        <button class="key-btn key-action" data-key="neg">±</button>
+        <button class="key-btn key-action" data-key="neg">+/-</button>
         <button class="key-btn" data-key="0">0</button>
         ${decimalKey}
-        <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">SUBMIT ↵</button>
+        <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">Submit</button>
       </div>
     </div>
   `;
@@ -540,11 +603,11 @@ function checkAnswer(userAnswer) {
   if (normalizedAnswer === state.currentAnswer) {
     state.score += CORRECT_SCORE;
     state.correct += 1;
-    showFeedback('✓ Correct!', 'success');
+    showFeedback('Correct', 'success');
   } else {
     state.score -= WRONG_PENALTY;
     state.wrong += 1;
-    showFeedback('✗ Wrong!', 'error');
+    showFeedback('Wrong', 'error');
   }
 
   // Update UI
@@ -577,7 +640,7 @@ function confirmResetProgress() {
   overlay.id = 'confirm-overlay';
   overlay.innerHTML = `
     <div class="pause-menu confirm-menu">
-      <div class="pause-icon">⚠️</div>
+      <div class="pause-icon">${renderIcon('warning', 'overlay-icon')}</div>
       <h2>Delete All Progress?</h2>
       <p class="confirm-text">This will permanently remove every high score and best correct-answer record for all game modes and difficulty levels.</p>
       <div class="pause-btn-group">
@@ -620,12 +683,12 @@ function pauseGame() {
   overlay.id = 'pause-overlay';
   overlay.innerHTML = `
     <div class="pause-menu">
-      <div class="pause-icon">⏸</div>
+      <div class="pause-icon">${renderIcon('pause', 'overlay-icon')}</div>
       <h2>Game Paused</h2>
       <div class="pause-btn-group">
-        <button class="pause-action-btn resume-btn" id="resume-btn">▶ Resume</button>
-        <button class="pause-action-btn restart-btn" id="restart-btn">🔄 Restart</button>
-        <button class="pause-action-btn menu-btn" id="menu-btn">🏠 Main Menu</button>
+        <button class="pause-action-btn resume-btn" id="resume-btn">${renderIcon('play', 'button-icon')} Resume</button>
+        <button class="pause-action-btn restart-btn" id="restart-btn">${renderIcon('refresh', 'button-icon')} Restart</button>
+        <button class="pause-action-btn menu-btn" id="menu-btn">${renderIcon('home', 'button-icon')} Main Menu</button>
       </div>
     </div>
   `;
@@ -716,8 +779,8 @@ function renderEnd(newRecord = false) {
       </div>
 
       <div class="end-screen glass-panel">
-        <h2>⏱️ Time's Up!</h2>
-        <div class="game-mode-label" style="margin:-0.5rem 0">${op.icon} ${state.level.label}</div>
+        <h2>${renderIcon('time', 'headline-icon')} Time's Up!</h2>
+        <div class="game-mode-label" style="margin:-0.5rem 0">${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
         
         <div class="final-stats">
           <div class="stat-box">
@@ -734,12 +797,12 @@ function renderEnd(newRecord = false) {
           </div>
         </div>
 
-        ${newRecord ? '<div class="new-record">🎉 New Record! 🎉</div>' : ''}
+        ${newRecord ? `<div class="new-record">${renderIcon('spark', 'inline-icon')} New Record!</div>` : ''}
 
         <div class="end-buttons">
-          <button class="primary-btn" id="retry-btn">🔄 Play Again</button>
-          <button class="secondary-btn" id="diff-btn">📊 Change Difficulty</button>
-          <button class="secondary-btn" id="home-btn">🏠 Main Menu</button>
+          <button class="primary-btn" id="retry-btn">${renderIcon('refresh', 'button-icon')} Play Again</button>
+          <button class="secondary-btn" id="diff-btn">${renderIcon('chart', 'button-icon')} Change Difficulty</button>
+          <button class="secondary-btn" id="home-btn">${renderIcon('home', 'button-icon')} Main Menu</button>
         </div>
       </div>
     </div>
