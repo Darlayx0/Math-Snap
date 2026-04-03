@@ -17,6 +17,19 @@ const OPERATIONS = {
       { max: 1000000, label: '1–1M + 1–1M', stars: '★★★★★' },
     ],
   },
+  subtraction: {
+    label: 'Subtraction',
+    symbol: '-',
+    icon: '➖',
+    desc: 'Sharpen your subtraction speed',
+    levels: [
+      { max: 100, label: '1–100 - 1–100', stars: '★' },
+      { max: 1000, label: '1–1K - 1–1K', stars: '★★' },
+      { max: 10000, label: '1–10K - 1–10K', stars: '★★★' },
+      { max: 100000, label: '1–100K - 1–100K', stars: '★★★★' },
+      { max: 1000000, label: '1–1M - 1–1M', stars: '★★★★★' },
+    ],
+  },
   multiplication: {
     label: 'Multiplication',
     symbol: '×',
@@ -28,6 +41,19 @@ const OPERATIONS = {
       { max: 100, label: '1–100 × 1–100', stars: '★★★' },
       { max: 1000, label: '1–1K × 1–1K', stars: '★★★★' },
       { max: 10000, label: '1–10K × 1–10K', stars: '★★★★★' },
+    ],
+  },
+  division: {
+    label: 'Division',
+    symbol: '÷',
+    icon: '➗',
+    desc: 'Practice fast decimal division',
+    levels: [
+      { max: 10, label: '1–10 ÷ 1–10', stars: '★' },
+      { max: 30, label: '1–30 ÷ 1–30', stars: '★★' },
+      { max: 100, label: '1–100 ÷ 1–100', stars: '★★★' },
+      { max: 1000, label: '1–1K ÷ 1–1K', stars: '★★★★' },
+      { max: 10000, label: '1–10K ÷ 1–10K', stars: '★★★★★' },
     ],
   },
 };
@@ -42,7 +68,7 @@ const WRONG_PENALTY = 100;
 // ============================================
 let state = {
   screen: 'menu', // menu | difficulty | playing | paused | end
-  operation: null,  // 'addition' | 'multiplication'
+  operation: null,  // 'addition' | 'subtraction' | 'multiplication' | 'division'
   level: null,      // level object
   score: 0,
   correct: 0,
@@ -134,10 +160,20 @@ function renderMenu() {
             <div class="op-label">Addition</div>
             <div class="op-desc">Add numbers fast</div>
           </div>
+          <div class="op-card subtraction" data-op="subtraction" id="op-subtraction">
+            <div class="op-icon">➖</div>
+            <div class="op-label">Subtraction</div>
+            <div class="op-desc">Subtract with speed</div>
+          </div>
           <div class="op-card multiplication" data-op="multiplication" id="op-multiplication">
             <div class="op-icon">✖️</div>
             <div class="op-label">Multiply</div>
             <div class="op-desc">Times table mastery</div>
+          </div>
+          <div class="op-card division" data-op="division" id="op-division">
+            <div class="op-icon">➗</div>
+            <div class="op-label">Division</div>
+            <div class="op-desc">Decimal division drill</div>
           </div>
         </div>
         
@@ -246,7 +282,7 @@ function renderGame() {
           ${state.useKeypad ? `
             <div class="answer-display focus" id="answer-display">${state.inputValue}<span class="cursor-blink"></span></div>
           ` : `
-            <input type="number" id="answer-input" placeholder="Your answer..." autocomplete="off" inputmode="numeric" />
+            <input type="number" id="answer-input" placeholder="Your answer..." autocomplete="off" inputmode="decimal" step="any" />
           `}
         </div>
 
@@ -267,7 +303,7 @@ function renderGame() {
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          checkAnswer(parseInt(input.value));
+          checkAnswer(parseFloat(input.value));
           input.value = '';
         }
       });
@@ -288,6 +324,9 @@ function handlePhysicalKeyboard(e) {
   if (e.key >= '0' && e.key <= '9') {
     state.inputValue += e.key;
     updateAnswerDisplay();
+  } else if ((e.key === '.' || e.key === ',') && state.operation === 'division') {
+    appendDecimalPoint();
+    updateAnswerDisplay();
   } else if (e.key === 'Backspace') {
     state.inputValue = state.inputValue.slice(0, -1);
     updateAnswerDisplay();
@@ -300,6 +339,10 @@ function handlePhysicalKeyboard(e) {
 }
 
 function renderKeypad() {
+  const decimalKey = state.operation === 'division'
+    ? '<button class="key-btn key-action" data-key="decimal">.</button>'
+    : '<button class="key-btn key-action" data-key="00">00</button>';
+
   return `
     <div class="keypad-container">
       <div class="keypad">
@@ -316,7 +359,7 @@ function renderKeypad() {
         <button class="key-btn" data-key="3">3</button>
         <button class="key-btn key-action" data-key="neg">±</button>
         <button class="key-btn" data-key="0">0</button>
-        <button class="key-btn key-action" data-key="00">00</button>
+        ${decimalKey}
         <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">SUBMIT ↵</button>
       </div>
     </div>
@@ -333,6 +376,8 @@ function bindKeypad() {
         state.inputValue += key;
       } else if (key === '00') {
         state.inputValue += '00';
+      } else if (key === 'decimal') {
+        appendDecimalPoint();
       } else if (key === 'del') {
         state.inputValue = state.inputValue.slice(0, -1);
       } else if (key === 'clear') {
@@ -359,6 +404,15 @@ function toggleNegative() {
   }
 }
 
+function appendDecimalPoint() {
+  if (state.operation !== 'division' || state.inputValue.includes('.')) return;
+  if (state.inputValue === '' || state.inputValue === '-') {
+    state.inputValue += '0.';
+    return;
+  }
+  state.inputValue += '.';
+}
+
 function updateAnswerDisplay() {
   const display = document.getElementById('answer-display');
   if (display) {
@@ -367,7 +421,7 @@ function updateAnswerDisplay() {
 }
 
 function submitKeypadAnswer() {
-  const val = parseInt(state.inputValue);
+  const val = parseFloat(state.inputValue);
   if (!isNaN(val)) {
     checkAnswer(val);
   }
@@ -411,15 +465,34 @@ function generateProblem() {
   const max = state.level.max;
   const num1 = Math.floor(Math.random() * max) + 1;
   const num2 = Math.floor(Math.random() * max) + 1;
-  const op = OPERATIONS[state.operation];
+  const formattedNum1 = num1.toLocaleString();
+  const formattedNum2 = num2.toLocaleString();
 
-  if (state.operation === 'addition') {
-    state.currentAnswer = num1 + num2;
-    state.currentProblem = `${num1.toLocaleString()} + ${num2.toLocaleString()}`;
-  } else {
-    state.currentAnswer = num1 * num2;
-    state.currentProblem = `${num1.toLocaleString()} × ${num2.toLocaleString()}`;
+  switch (state.operation) {
+    case 'addition':
+      state.currentAnswer = num1 + num2;
+      state.currentProblem = `${formattedNum1} + ${formattedNum2}`;
+      break;
+    case 'subtraction':
+      state.currentAnswer = num1 - num2;
+      state.currentProblem = `${formattedNum1} - ${formattedNum2}`;
+      break;
+    case 'multiplication':
+      state.currentAnswer = num1 * num2;
+      state.currentProblem = `${formattedNum1} × ${formattedNum2}`;
+      break;
+    case 'division':
+      state.currentAnswer = roundToTwo(num1 / num2);
+      state.currentProblem = `${formattedNum1} ÷ ${formattedNum2}`;
+      break;
+    default:
+      state.currentAnswer = 0;
+      state.currentProblem = '';
   }
+}
+
+function roundToTwo(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function animateProblem() {
@@ -435,7 +508,11 @@ function animateProblem() {
 function checkAnswer(userAnswer) {
   if (isNaN(userAnswer)) return;
 
-  if (userAnswer === state.currentAnswer) {
+  const normalizedAnswer = state.operation === 'division'
+    ? roundToTwo(userAnswer)
+    : userAnswer;
+
+  if (normalizedAnswer === state.currentAnswer) {
     state.score += CORRECT_SCORE;
     state.correct += 1;
     showFeedback('✓ Correct!', 'success');

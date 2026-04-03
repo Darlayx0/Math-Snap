@@ -262,8 +262,16 @@ body {
   background: radial-gradient(circle at center, rgba(34, 211, 238, 0.08), transparent 70%);
 }
 
+.op-card.subtraction::before {
+  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.1), transparent 70%);
+}
+
 .op-card.multiplication::before {
   background: radial-gradient(circle at center, rgba(232, 121, 249, 0.08), transparent 70%);
+}
+
+.op-card.division::before {
+  background: radial-gradient(circle at center, rgba(52, 211, 153, 0.1), transparent 70%);
 }
 
 .op-card:hover, .op-card:active {
