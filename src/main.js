@@ -62,6 +62,8 @@ const MATH_SYMBOLS = ['Σ', 'π', '√', '∫', '∞', 'Δ', '÷', '±', '≈', 
 const GAME_DURATION = 60;
 const CORRECT_SCORE = 20;
 const WRONG_PENALTY = 100;
+const COMBO_RING_RADIUS = 16;
+const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
 
 // ============================================
 // Game State
@@ -102,6 +104,7 @@ function renderIcon(name, className = '') {
     refresh: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke-linecap="round" stroke-linejoin="round" /><path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round" />',
     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linecap="round" stroke-linejoin="round" /><path d="M9 22V12h6v10" stroke-linecap="round" stroke-linejoin="round" />',
     chart: '<path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round" stroke-linejoin="round" />',
+    guide: '<path d="M6 5.5A2.5 2.5 0 0 1 8.5 3H20v15H8.5A2.5 2.5 0 0 0 6 20.5m0-15v15m0-15H4v15h2" stroke-linecap="round" stroke-linejoin="round" />',
     spark: '<path d="M12 2.5l2.1 5.4 5.4 2.1-5.4 2.1L12 17.5l-2.1-5.4-5.4-2.1 5.4-2.1L12 2.5z" stroke-linejoin="round" />',
     plus: '<path d="M12 5v14M5 12h14" stroke-linecap="round" />',
     minus: '<path d="M5 12h14" stroke-linecap="round" />',
@@ -136,6 +139,74 @@ function renderRankDots(rank) {
 
 function renderLabelIcon(name, text) {
   return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
+}
+
+function renderInlineStat({ tone, icon, label, value, id, valueClass = '', title = '' }) {
+  return `
+    <div class="inline-stat ${tone}" title="${title}">
+      <span class="inline-stat-badge">
+        <span class="stat-icon">${renderIcon(icon, 'stats-icon')}</span>
+      </span>
+      <span class="stat-copy">
+        <span class="stat-label">${label}</span>
+        <span class="stat-val ${valueClass}" id="${id}">${value}</span>
+      </span>
+    </div>
+  `;
+}
+
+function renderComboStat() {
+  return `
+    <div class="inline-stat combo" title="Combo multiplier" id="combo-stat" style="display:none">
+      <span class="combo-ring-shell">
+        <svg class="combo-ring" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+          <circle class="combo-ring-track" cx="20" cy="20" r="${COMBO_RING_RADIUS}"></circle>
+          <circle
+            class="combo-ring-progress"
+            id="combo-ring-progress"
+            cx="20"
+            cy="20"
+            r="${COMBO_RING_RADIUS}"
+            style="stroke-dasharray:${COMBO_RING_CIRCUMFERENCE};stroke-dashoffset:${COMBO_RING_CIRCUMFERENCE};"
+          ></circle>
+        </svg>
+        <span class="stat-icon combo-icon">${renderIcon('bolt', 'stats-icon')}</span>
+      </span>
+      <span class="stat-copy">
+        <span class="stat-label">Combo</span>
+        <span class="stat-val" id="combo">0x</span>
+      </span>
+    </div>
+  `;
+}
+
+function renderGuideModal() {
+  return `
+    <div class="guide-modal" id="guide-modal" aria-hidden="true">
+      <div class="guide-modal-panel glass-panel">
+        <h2 class="guide-title">Panduan Permainan</h2>
+        <div class="guide-rules">
+          <div class="guide-rule">
+            <span class="rule-icon">${renderIcon('time', 'rule-svg')}</span>
+            <span class="guide-rule-text"><strong>60 detik</strong> untuk skor setinggi mungkin</span>
+          </div>
+          <div class="guide-rule">
+            <span class="rule-icon glow-green">${renderIcon('check', 'rule-svg')}</span>
+            <span class="guide-rule-text">Benar: <strong class="text-green">+${CORRECT_SCORE} Base Score</strong> dan combo bertambah.</span>
+          </div>
+          <div class="guide-rule">
+            <span class="rule-icon glow-magenta">${renderIcon('bolt', 'rule-svg')}</span>
+            <span class="guide-rule-text">Combo multiplier memberi bonus dan turun otomatis tiap 10 detik.</span>
+          </div>
+          <div class="guide-rule">
+            <span class="rule-icon glow-red">${renderIcon('close', 'rule-svg')}</span>
+            <span class="guide-rule-text">Salah membuat combo hangus, skor tetap, dan soal tidak berganti.</span>
+          </div>
+        </div>
+        <button class="secondary-btn guide-close-btn" id="close-guide">Tutup</button>
+      </div>
+    </div>
+  `;
 }
 
 
@@ -249,31 +320,28 @@ function renderMenu() {
         <div class="divider"></div>
         
         <div class="menu-actions">
-          <button class="menu-btn primary-btn" id="open-guide">Panduan Permainan</button>
+          <button class="utility-link" id="open-guide">${renderIcon('guide', 'button-icon')}Panduan Permainan</button>
           <button class="danger-link" id="reset-progress-menu">Reset All Progress</button>
         </div>
       </div>
     </div>
-    
-    <div class="modal guide-modal" id="guide-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; padding:1rem;">
-      <div class="modal-content glass-panel" style="max-width:400px; padding: 2rem; width:100%;">
-        <h2 style="font-size:1.5rem; margin-bottom:1rem; color:var(--neon-cyan)">Panduan Permainan</h2>
-        <div class="rules-box" style="margin: 1.5rem 0; border:none; padding:0; background:transparent">
-          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon">${renderIcon('time', 'rule-svg')}</span> <span style="line-height:1.4"><strong>60 detik</strong> untuk skor setinggi mungkin</span></div>
-          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon glow-green">${renderIcon('check', 'rule-svg')}</span> <span style="line-height:1.4">Benar: <strong class="text-green">+100 Base Score</strong> & Combo bertambah.</span></div>
-          <div class="rule-item" style="margin-bottom:0.8rem"><span class="rule-icon glow-magenta" style="color:var(--neon-magenta)">${renderIcon('bolt', 'rule-svg')}</span> <span style="line-height:1.4">Combo Multiplier memberikan bonus. Turun otomatis tiap 10 detik.</span></div>
-          <div class="rule-item"><span class="rule-icon glow-red" style="color:var(--error)">${renderIcon('close', 'rule-svg')}</span> <span style="line-height:1.4">Salah: Combo <strong>hangus</strong>, tapi skor tetap. Soal tidak akan berganti!</span></div>
-        </div>
-        <button class="menu-btn primary-btn" id="close-guide" style="width:100%; margin-top:1rem;">Tutup</button>
-      </div>
-    </div>
+    ${renderGuideModal()}
   `;
 
+  const guideModal = document.getElementById('guide-modal');
   document.getElementById('open-guide')?.addEventListener('click', () => {
-    document.getElementById('guide-modal').style.display = 'flex';
+    guideModal?.classList.add('is-open');
+    guideModal?.setAttribute('aria-hidden', 'false');
   });
   document.getElementById('close-guide')?.addEventListener('click', () => {
-    document.getElementById('guide-modal').style.display = 'none';
+    guideModal?.classList.remove('is-open');
+    guideModal?.setAttribute('aria-hidden', 'true');
+  });
+  guideModal?.addEventListener('click', (e) => {
+    if (e.target === guideModal) {
+      guideModal.classList.remove('is-open');
+      guideModal.setAttribute('aria-hidden', 'true');
+    }
   });
 
   document.querySelectorAll('.op-card').forEach(card => {
@@ -313,9 +381,9 @@ function renderDifficulty() {
               <div class="diff-main">
                 <div class="diff-label">${lvl.label}</div>
                 <div class="diff-meta">
-                  <span class="diff-stat glow-amber">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
-                  <span class="diff-stat glow-green">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
-                  <span class="diff-stat glow-magenta">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
+                  <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
+                  <span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
+                  <span class="diff-stat combo-record">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
                 </div>
               </div>
               <div class="diff-side">
@@ -353,36 +421,29 @@ function renderDifficulty() {
 // ============================================
 function renderGame() {
   const op = OPERATIONS[state.operation];
-  const hsVal = getHighScore(state.operation, state.level.max);
-  const hcVal = getHighCorrect(state.operation, state.level.max);
   const timeWarn = state.timeLeft <= 10 ? 'time-warn' : '';
 
   app.innerHTML = `
     <div class="game-container">
-      <div class="header" style="display:none">
+      <div class="header game-header-hidden">
         <h1>Math Snap</h1>
+        <div class="subtitle">${op.label} • ${state.level.label}</div>
       </div>
 
       <div class="game-screen glass-panel">
         <div class="game-top-bar">
-          <div class="game-mode-label">${renderOperationIcon(state.operation, 'inline-icon')} <span>${state.level.label}</span></div>
-          
           <div class="inline-stats">
-            <div class="inline-stat combo glow-magenta" title="Combo Multiplier" id="combo-stat" style="display:none; margin-right:0.5rem"><span class="stat-icon" style="color:var(--neon-magenta)">${renderIcon('bolt', 'stats-icon')}</span><span class="stat-val" id="combo" style="color:var(--neon-magenta)">0x</span></div>
-            <div class="inline-stat time" title="Time: ${state.timeLeft}s"><span class="stat-icon">${renderIcon('time', 'stats-icon')}</span><span class="stat-val ${timeWarn}" id="time">${state.timeLeft}s</span></div>
-            <div class="inline-stat score" title="Score: ${state.score}"><span class="stat-icon">${renderIcon('spark', 'stats-icon')}</span><span class="stat-val" id="score">${state.score}</span></div>
-            <div class="inline-stat correct" title="Correct: ${state.correct}"><span class="stat-icon">${renderIcon('check', 'stats-icon')}</span><span class="stat-val" id="correct">${state.correct}</span></div>
-            <div class="inline-stat wrong" title="Wrong: ${state.wrong}"><span class="stat-icon">${renderIcon('close', 'stats-icon')}</span><span class="stat-val" id="wrong">${state.wrong}</span></div>
+            ${renderComboStat()}
+            ${renderInlineStat({ tone: 'time', icon: 'time', label: 'Time', value: `${state.timeLeft}s`, id: 'time', valueClass: timeWarn, title: `Time: ${state.timeLeft}s` })}
+            ${renderInlineStat({ tone: 'score', icon: 'spark', label: 'Score', value: state.score, id: 'score', title: `Score: ${state.score}` })}
+            ${renderInlineStat({ tone: 'correct', icon: 'check', label: 'Correct', value: state.correct, id: 'correct', title: `Correct: ${state.correct}` })}
+            ${renderInlineStat({ tone: 'wrong', icon: 'close', label: 'Wrong', value: state.wrong, id: 'wrong', title: `Wrong: ${state.wrong}` })}
           </div>
 
           <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
 
-        <div class="combo-bar-container" id="combo-bar-container" style="display:none; width:100%; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; margin-bottom:1rem; overflow:hidden">
-          <div class="combo-bar-fill" id="combo-bar-fill" style="height:100%; width:100%; background:var(--neon-magenta); transition:width 1s linear, background-color 0.3s"></div>
-        </div>
-
-        <div class="problem-container" style="padding-top:0.5rem">
+        <div class="problem-container">
           <div id="problem" class="problem-text">${state.currentProblem}</div>
         </div>
 
@@ -563,6 +624,7 @@ function startGame() {
     const timeEl = document.getElementById('time');
     if (timeEl) {
       timeEl.textContent = `${state.timeLeft}s`;
+      timeEl.closest('.inline-stat')?.setAttribute('title', `Time: ${state.timeLeft}s`);
       if (state.timeLeft <= 10) {
         timeEl.classList.add('time-warn');
       }
@@ -668,34 +730,39 @@ function updateStatsUI() {
   const correctEl = document.getElementById('correct');
   const wrongEl = document.getElementById('wrong');
   if (scoreEl) scoreEl.textContent = state.score;
+  if (scoreEl) scoreEl.closest('.inline-stat')?.setAttribute('title', `Score: ${state.score}`);
   if (correctEl) correctEl.textContent = state.correct;
+  if (correctEl) correctEl.closest('.inline-stat')?.setAttribute('title', `Correct: ${state.correct}`);
   if (wrongEl) wrongEl.textContent = state.wrong;
+  if (wrongEl) wrongEl.closest('.inline-stat')?.setAttribute('title', `Wrong: ${state.wrong}`);
 }
 
 function updateComboUI() {
   const comboStat = document.getElementById('combo-stat');
   const comboVal = document.getElementById('combo');
-  const comboBarContainer = document.getElementById('combo-bar-container');
-  const comboBarFill = document.getElementById('combo-bar-fill');
+  const comboRingProgress = document.getElementById('combo-ring-progress');
 
   if (state.combo > 0) {
     if (comboStat) {
-      comboStat.style.display = 'flex';
+      comboStat.style.display = 'grid';
+      comboStat.title = `Combo: ${state.combo}x • ${state.comboTimer}s left`;
+      comboStat.classList.toggle('danger', state.comboTimer <= 3);
+    }
+    if (comboVal) {
       comboVal.textContent = state.combo + 'x';
     }
-    if (comboBarContainer) {
-      comboBarContainer.style.display = 'block';
-      const pct = (state.comboTimer / 10) * 100;
-      comboBarFill.style.width = pct + '%';
-      if (state.comboTimer <= 3) {
-        comboBarFill.classList.add('danger');
-      } else {
-        comboBarFill.classList.remove('danger');
-      }
+    if (comboRingProgress) {
+      const progress = Math.max(0, Math.min(1, state.comboTimer / 10));
+      comboRingProgress.style.strokeDashoffset = `${COMBO_RING_CIRCUMFERENCE * (1 - progress)}`;
     }
   } else {
-    if (comboStat) comboStat.style.display = 'none';
-    if (comboBarContainer) comboBarContainer.style.display = 'none';
+    if (comboStat) {
+      comboStat.style.display = 'none';
+      comboStat.classList.remove('danger');
+    }
+    if (comboRingProgress) {
+      comboRingProgress.style.strokeDashoffset = `${COMBO_RING_CIRCUMFERENCE}`;
+    }
   }
 }
 
@@ -788,6 +855,7 @@ function resumeGame() {
     const timeEl = document.getElementById('time');
     if (timeEl) {
       timeEl.textContent = `${state.timeLeft}s`;
+      timeEl.closest('.inline-stat')?.setAttribute('title', `Time: ${state.timeLeft}s`);
       if (state.timeLeft <= 10) {
         timeEl.classList.add('time-warn');
       }
