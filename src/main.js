@@ -58,10 +58,26 @@ const OPERATIONS = {
   },
 };
 
+const GAME_MODES = {
+  sprint: {
+    label: 'Sprint 60s',
+    icon: 'time',
+    menuDesc: 'Kumpulkan skor setinggi mungkin dalam countdown 60 detik.',
+    resultTitle: "Time's Up!",
+  },
+  race10: {
+    label: 'Race 10',
+    icon: 'target',
+    menuDesc: 'Selesaikan 10 soal benar secepat mungkin sambil menjaga combo.',
+    resultTitle: 'Race Complete!',
+  },
+};
+
 const MATH_SYMBOLS = ['Σ', 'π', '√', '∫', '∞', 'Δ', '÷', '±', '≈', '≠', '%', '∂', 'θ', 'λ', 'φ', 'α', 'β', 'γ', '+', '×', '−', '='];
 const GAME_DURATION = 60;
 const CORRECT_SCORE = 100;
 const WRONG_PENALTY = 100;
+const RACE_TARGET = 10;
 const COMBO_RING_RADIUS = 16;
 const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
 
@@ -70,15 +86,19 @@ const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
 // ============================================
 let state = {
   screen: 'menu', // menu | difficulty | playing | paused | end
+  gameMode: 'sprint',
   operation: null,  // 'addition' | 'subtraction' | 'multiplication' | 'division'
   level: null,      // level object
   score: 0,
   correct: 0,
   wrong: 0,
+  progressSolved: 0,
   combo: 0,
   maxCombo: 0,
   comboTimer: 10,
   timeLeft: GAME_DURATION,
+  elapsedMs: 0,
+  timerStartedAt: 0,
   currentAnswer: 0,
   currentProblem: '',
   timerInterval: null,
@@ -131,6 +151,10 @@ function renderOperationIcon(name, className = '') {
   return renderIcon(iconMap[name], className);
 }
 
+function renderModeIcon(name, className = '') {
+  return renderIcon(GAME_MODES[name]?.icon || 'spark', className);
+}
+
 function renderRankDots(rank) {
   return `<div class="diff-rank" aria-label="Difficulty ${rank}">${Array.from({ length: 5 }, (_, index) => `
     <span class="rank-dot ${index < rank ? 'active' : ''}"></span>
@@ -145,6 +169,25 @@ function renderHudStat(icon, id, value, tone, title) {
   return `<div class="hud-cell ${tone}" title="${title}"><span class="hud-icon">${renderIcon(icon, 'hud-svg')}</span><span class="hud-val" id="${id}">${value}</span></div>`;
 }
 
+function isRaceMode(mode = state.gameMode) {
+  return mode === 'race10';
+}
+
+function formatElapsedMs(ms) {
+  if (!Number.isFinite(ms) || ms < 0) {
+    return '--:--.--';
+  }
+  const totalMs = Math.max(0, ms);
+  const minutes = Math.floor(totalMs / 60000);
+  const seconds = Math.floor((totalMs % 60000) / 1000);
+  const centiseconds = Math.floor((totalMs % 1000) / 10);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+}
+
+function getProgressLabel() {
+  return `${state.progressSolved}/${RACE_TARGET}`;
+}
+
 const GUIDE_SECTIONS = [
   {
     id: 'overview',
@@ -153,13 +196,13 @@ const GUIDE_SECTIONS = [
     title: 'Cara kerja Math Snap',
     lead: 'Panduan ringkas untuk memahami flow permainan dalam beberapa detik.',
     highlights: [
-      ['Mode cepat 60 detik', 'Tujuan utama Anda adalah menjawab sebanyak mungkin sebelum waktu habis.'],
-      ['Pilih operasi dan difficulty', 'Setiap mode punya record terpisah sehingga progres latihan tetap rapi.'],
-      ['Soal baru muncul instan', 'Setiap jawaban benar langsung lanjut ke soal berikutnya agar ritme tetap tinggi.'],
+      [GAME_MODES.sprint.label, 'Mode arcade klasik dengan target skor tertinggi dalam countdown 60 detik.'],
+      [GAME_MODES.race10.label, `Mode clear challenge untuk menuntaskan ${RACE_TARGET} soal benar secepat mungkin.`],
+      ['Pilih operasi dan difficulty', 'Semua 4 operasi dan seluruh level difficulty tersedia di kedua mode.'],
     ],
     tips: [
       'Mulai dari difficulty yang nyaman lalu naik bertahap.',
-      'Jaga ritme menjawab, jangan terlalu lama di satu soal.',
+      'Gunakan Sprint untuk mengejar skor, lalu Race 10 untuk melatih akurasi dan kecepatan clear.',
     ],
   },
   {
@@ -171,7 +214,7 @@ const GUIDE_SECTIONS = [
     highlights: [
       [`Base score +${CORRECT_SCORE}`, 'Setiap jawaban benar selalu memberi skor dasar yang sama besar.'],
       ['Bonus dari combo', 'Semakin cepat menjawab saat combo aktif, bonus tambahannya semakin tinggi.'],
-      ['Skor akhir', 'Total akhir dibentuk dari base score, bonus combo, dan konsistensi Anda.'],
+      ['Race 10 tetap pakai skor', 'Walau mode ini mengejar waktu terbaik, skor dan combo tetap dihitung penuh.'],
     ],
     tips: [
       'Jawaban cepat saat combo tinggi paling efektif untuk mengejar skor.',
@@ -217,18 +260,29 @@ const GUIDE_SECTIONS = [
     title: 'Record dan progres bermain',
     lead: 'Setiap pilihan difficulty menyimpan progresnya sendiri sehingga perkembangan Anda mudah dipantau.',
     highlights: [
-      ['Best Score', 'Skor tertinggi yang pernah Anda capai pada mode dan difficulty tersebut.'],
-      ['Most Correct', 'Jumlah jawaban benar terbanyak dalam satu sesi pada mode dan difficulty yang sama.'],
-      ['High Combo', 'Combo tertinggi yang pernah Anda bangun di sesi tersebut.'],
+      ['Sprint records', 'Menyimpan Best Score, Most Correct, dan High Combo untuk tiap operation + difficulty.'],
+      ['Race 10 records', 'Menyimpan Best Score, Best Time, dan High Combo secara terpisah dari mode Sprint.'],
+      ['Best Time', 'Waktu clear tercepat di Race 10; semakin kecil angkanya, semakin baik record Anda.'],
     ],
     tips: [
-      'Gunakan reset progress hanya jika benar-benar ingin menghapus semua catatan latihan.',
+      'Gunakan reset progress hanya jika benar-benar ingin menghapus semua catatan Sprint dan Race 10.',
       'Bandingkan record per difficulty untuk melihat peningkatan kemampuan Anda.',
     ],
   },
 ];
 
 function renderGuideModal() {
+  const guideSummary = [
+    ['2 Game Modes', 'Sprint + Race'],
+    ['4 Operations', 'Semua level aktif'],
+    ['Scrollable Guide', 'Nyaman di windowed'],
+  ].map(([label, value]) => `
+    <div class="guide-summary-chip">
+      <span class="guide-summary-value">${label}</span>
+      <span class="guide-summary-label">${value}</span>
+    </div>
+  `).join('');
+
   const nav = GUIDE_SECTIONS.map((section, index) => `
     <button class="guide-nav-btn ${index === 0 ? 'is-active' : ''}" data-guide-tab="${section.id}" type="button">
       <span class="guide-nav-icon">${renderIcon(section.icon, 'guide-nav-svg')}</span>
@@ -270,12 +324,22 @@ function renderGuideModal() {
     <div class="guide-modal" id="guide-modal" aria-hidden="true">
       <div class="guide-modal-panel glass-panel">
         <div class="guide-shell">
-          <div class="guide-header-row">
-            <div class="guide-header-copy">
-              <h2 class="guide-title">Panduan Permainan</h2>
-              <p class="guide-intro">Semua fitur utama dijelaskan per bagian agar mudah dipelajari tanpa terasa seperti membaca blok teks panjang.</p>
+          <div class="guide-header-hero">
+            <div class="guide-header-row">
+              <div class="guide-header-meta">
+                <div class="guide-eyebrow">${renderIcon('guide', 'mini-icon')}Math Snap Guide</div>
+                <div class="guide-header-copy">
+                  <h2 class="guide-title">Panduan Permainan</h2>
+                  <p class="guide-intro">Pelajari cara kerja skor, combo, kontrol, dan record dalam tampilan yang lebih ringkas, rapi, dan mudah dipindai.</p>
+                </div>
+              </div>
+              <div class="guide-header-actions">
+                <button class="secondary-btn guide-close-btn guide-close-top" id="close-guide" type="button">Tutup</button>
+              </div>
             </div>
-            <button class="secondary-btn guide-close-btn guide-close-top" id="close-guide" type="button">Tutup</button>
+            <div class="guide-header-summary">
+              ${guideSummary}
+            </div>
           </div>
           <div class="guide-layout">
             <nav class="guide-nav" aria-label="Navigasi panduan">
@@ -305,23 +369,67 @@ function isTouchDevice() {
 // ============================================
 // Local Storage Helpers
 // ============================================
-function getHighScore(op, max) {
-  return parseInt(localStorage.getItem(`mathSnap_${op}_${max}_HS`)) || 0;
+function getModeRecordKey(mode, op, max, suffix) {
+  return `mathSnap_${mode}_${op}_${max}_${suffix}`;
 }
-function getHighCorrect(op, max) {
-  return parseInt(localStorage.getItem(`mathSnap_${op}_${max}_HC`)) || 0;
+
+function getLegacyRecordKey(op, max, suffix) {
+  return `mathSnap_${op}_${max}_${suffix}`;
 }
-function getHighCombo(op, max) {
-  return parseInt(localStorage.getItem(`mathSnap_${op}_${max}_HCO`)) || 0;
+
+function getStoredNumber(key) {
+  const value = localStorage.getItem(key);
+  if (value === null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
-function setHighScore(op, max, val) {
-  localStorage.setItem(`mathSnap_${op}_${max}_HS`, val);
+
+function getHighScore(mode, op, max) {
+  const value = getStoredNumber(getModeRecordKey(mode, op, max, 'HS'));
+  if (value !== null) return value;
+  if (mode === 'sprint') {
+    return getStoredNumber(getLegacyRecordKey(op, max, 'HS')) || 0;
+  }
+  return 0;
 }
-function setHighCorrect(op, max, val) {
-  localStorage.setItem(`mathSnap_${op}_${max}_HC`, val);
+
+function getHighCorrect(mode, op, max) {
+  if (mode !== 'sprint') return 0;
+  const value = getStoredNumber(getModeRecordKey(mode, op, max, 'HC'));
+  if (value !== null) return value;
+  return getStoredNumber(getLegacyRecordKey(op, max, 'HC')) || 0;
 }
-function setHighCombo(op, max, val) {
-  localStorage.setItem(`mathSnap_${op}_${max}_HCO`, val);
+
+function getHighCombo(mode, op, max) {
+  const value = getStoredNumber(getModeRecordKey(mode, op, max, 'HCO'));
+  if (value !== null) return value;
+  if (mode === 'sprint') {
+    return getStoredNumber(getLegacyRecordKey(op, max, 'HCO')) || 0;
+  }
+  return 0;
+}
+
+function getBestTime(mode, op, max) {
+  if (mode !== 'race10') return null;
+  return getStoredNumber(getModeRecordKey(mode, op, max, 'BT'));
+}
+
+function setHighScore(mode, op, max, val) {
+  localStorage.setItem(getModeRecordKey(mode, op, max, 'HS'), String(val));
+}
+
+function setHighCorrect(mode, op, max, val) {
+  if (mode !== 'sprint') return;
+  localStorage.setItem(getModeRecordKey(mode, op, max, 'HC'), String(val));
+}
+
+function setHighCombo(mode, op, max, val) {
+  localStorage.setItem(getModeRecordKey(mode, op, max, 'HCO'), String(val));
+}
+
+function setBestTime(mode, op, max, val) {
+  if (mode !== 'race10') return;
+  localStorage.setItem(getModeRecordKey(mode, op, max, 'BT'), String(val));
 }
 
 function clearAllProgress() {
@@ -367,6 +475,8 @@ function render() {
 // Menu Screen
 // ============================================
 function renderMenu() {
+  const activeMode = GAME_MODES[state.gameMode];
+
   app.innerHTML = `
     <div class="game-container">
       <div class="header">
@@ -375,6 +485,23 @@ function renderMenu() {
       </div>
 
       <div class="menu-screen glass-panel">
+        <div class="mode-switch" role="tablist" aria-label="Game mode">
+          ${Object.entries(GAME_MODES).map(([key, mode]) => `
+            <button class="mode-tab ${state.gameMode === key ? 'is-active' : ''}" data-mode="${key}" type="button" aria-pressed="${state.gameMode === key}">
+              <span class="mode-tab-icon">${renderModeIcon(key, 'button-icon')}</span>
+              <span class="mode-tab-copy">
+                <span class="mode-tab-label">${mode.label}</span>
+                <span class="mode-tab-desc">${mode.menuDesc}</span>
+              </span>
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="menu-mode-callout">
+          <div class="menu-mode-badge">${renderModeIcon(state.gameMode, 'badge-icon')}<span>${activeMode.label}</span></div>
+          <p>${activeMode.menuDesc}</p>
+        </div>
+
         <h2>Choose Operation</h2>
         <div class="operation-grid">
           <div class="op-card addition" data-op="addition" id="op-addition">
@@ -441,6 +568,12 @@ function renderMenu() {
       setGuideTab(button.dataset.guideTab);
     });
   });
+  document.querySelectorAll('.mode-tab').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.gameMode = button.dataset.mode;
+      render();
+    });
+  });
 
   document.querySelectorAll('.op-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -458,10 +591,11 @@ function renderMenu() {
 // ============================================
 function renderDifficulty() {
   const op = OPERATIONS[state.operation];
-  const hs = (lvl) => getHighScore(state.operation, lvl.max);
-  const hc = (lvl) => getHighCorrect(state.operation, lvl.max);
-
-  const hco = (lvl) => getHighCombo(state.operation, lvl.max);
+  const mode = GAME_MODES[state.gameMode];
+  const hs = (lvl) => getHighScore(state.gameMode, state.operation, lvl.max);
+  const hc = (lvl) => getHighCorrect(state.gameMode, state.operation, lvl.max);
+  const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
+  const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
 
   app.innerHTML = `
     <div class="game-container">
@@ -470,7 +604,10 @@ function renderDifficulty() {
       </div>
 
       <div class="diff-screen glass-panel">
-        <div class="op-badge">${renderOperationIcon(state.operation, 'badge-icon')} <span>${op.label}</span></div>
+        <div class="selection-badges">
+          <div class="op-badge mode-badge mode-${state.gameMode}">${renderModeIcon(state.gameMode, 'badge-icon')} <span>${mode.label}</span></div>
+          <div class="op-badge">${renderOperationIcon(state.operation, 'badge-icon')} <span>${op.label}</span></div>
+        </div>
         
         <div class="diff-grid">
           ${op.levels.map((lvl, i) => `
@@ -484,7 +621,9 @@ function renderDifficulty() {
                 </div>
                 <div class="diff-meta">
                   <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
-                  <span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
+                  ${state.gameMode === 'race10'
+                    ? `<span class="diff-stat time-record">${renderIcon('time', 'mini-icon')} Time: ${formatElapsedMs(hbt(lvl))}</span>`
+                    : `<span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>`}
                   <span class="diff-stat combo-record">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
                 </div>
               </div>
@@ -520,7 +659,12 @@ function renderDifficulty() {
 // ============================================
 function renderGame() {
   const op = OPERATIONS[state.operation];
-  const timeWarn = state.timeLeft <= 10 ? 'time-warn' : '';
+  const isRace = isRaceMode();
+  const timeTone = isRace ? 'ht-time' : 'ht-time' + (state.timeLeft <= 10 ? ' time-warn' : '');
+  const timeValue = isRace ? formatElapsedMs(state.elapsedMs) : `${state.timeLeft}s`;
+  const tertiaryStat = isRace
+    ? renderHudStat('target', 'progress', getProgressLabel(), 'ht-progress', 'Progress')
+    : renderHudStat('check', 'correct', state.correct, 'ht-correct', 'Correct');
 
   app.innerHTML = `
     <div class="game-container game-active">
@@ -542,9 +686,9 @@ function renderGame() {
             </div>
           </div>
           <div class="hud-stats">
-            ${renderHudStat('time', 'time', state.timeLeft + 's', 'ht-time' + (state.timeLeft <= 10 ? ' time-warn' : ''), 'Time')}
+            ${renderHudStat('time', 'time', timeValue, timeTone, isRace ? 'Elapsed Time' : 'Time')}
             ${renderHudStat('spark', 'score', state.score, 'ht-score', 'Score')}
-            ${renderHudStat('check', 'correct', state.correct, 'ht-correct', 'Correct')}
+            ${tertiaryStat}
           </div>
           <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
@@ -714,34 +858,70 @@ function startGame() {
   state.score = 0;
   state.correct = 0;
   state.wrong = 0;
+  state.progressSolved = 0;
   state.combo = 0;
   state.maxCombo = 0;
   state.comboTimer = 10;
   state.timeLeft = GAME_DURATION;
+  state.elapsedMs = 0;
+  state.timerStartedAt = 0;
   state.inputValue = '';
   state.useKeypad = isTouchDevice();
 
   generateProblem();
   render();
   animateProblem();
+  updateStatsUI();
+  updateTimeUI();
   updateComboUI();
+  startTimerLoop();
+  startComboLoop();
+}
+
+function syncElapsedMs() {
+  if (!isRaceMode() || !state.timerStartedAt) return;
+  state.elapsedMs = Math.max(0, Date.now() - state.timerStartedAt);
+}
+
+function updateTimeUI() {
+  const timeEl = document.getElementById('time');
+  if (!timeEl) return;
+
+  if (isRaceMode()) {
+    timeEl.textContent = formatElapsedMs(state.elapsedMs);
+    timeEl.classList.remove('time-warn');
+    return;
+  }
+
+  timeEl.textContent = `${Math.max(0, state.timeLeft)}s`;
+  timeEl.classList.toggle('time-warn', state.timeLeft <= 10);
+}
+
+function startTimerLoop() {
+  clearInterval(state.timerInterval);
+
+  if (isRaceMode()) {
+    state.timerStartedAt = Date.now() - state.elapsedMs;
+    state.timerInterval = setInterval(() => {
+      if (state.screen !== 'playing') return;
+      syncElapsedMs();
+      updateTimeUI();
+    }, 100);
+    return;
+  }
 
   state.timerInterval = setInterval(() => {
     if (state.screen !== 'playing') return;
-    state.timeLeft--;
-    const timeEl = document.getElementById('time');
-    if (timeEl) {
-      timeEl.textContent = `${state.timeLeft}s`;
-      timeEl.closest('.inline-stat')?.setAttribute('title', `Time: ${state.timeLeft}s`);
-      if (state.timeLeft <= 10) {
-        timeEl.classList.add('time-warn');
-      }
-    }
+    state.timeLeft = Math.max(0, state.timeLeft - 1);
+    updateTimeUI();
     if (state.timeLeft <= 0) {
       endGame();
     }
   }, 1000);
+}
 
+function startComboLoop() {
+  clearInterval(state.comboInterval);
   state.comboInterval = setInterval(() => {
     if (state.screen !== 'playing') return;
     if (state.combo > 0) {
@@ -812,16 +992,19 @@ function checkAnswer(userAnswer) {
     const totalAward = CORRECT_SCORE + bonus;
     
     state.score += totalAward;
-    state.correct += 1;
     
     state.combo += 1;
     state.maxCombo = Math.max(state.maxCombo, state.combo);
     state.comboTimer = 10;
+
+    if (isRaceMode()) {
+      state.progressSolved += 1;
+      syncElapsedMs();
+    } else {
+      state.correct += 1;
+    }
     
     showFeedback('+'+totalAward, 'success');
-    
-    generateProblem();
-    animateProblem();
   } else {
     state.wrong += 1;
     state.combo = 0;
@@ -831,13 +1014,24 @@ function checkAnswer(userAnswer) {
 
   updateStatsUI();
   updateComboUI();
+
+  if (normalizedAnswer === state.currentAnswer) {
+    if (isRaceMode() && state.progressSolved >= RACE_TARGET) {
+      endGame();
+      return;
+    }
+    generateProblem();
+    animateProblem();
+  }
 }
 
 function updateStatsUI() {
   const scoreEl = document.getElementById('score');
   const correctEl = document.getElementById('correct');
+  const progressEl = document.getElementById('progress');
   if (scoreEl) scoreEl.textContent = state.score;
   if (correctEl) correctEl.textContent = state.correct;
+  if (progressEl) progressEl.textContent = getProgressLabel();
 }
 
 function updateComboUI() {
@@ -886,7 +1080,7 @@ function confirmResetProgress() {
     <div class="pause-menu confirm-menu">
       <div class="pause-icon">${renderIcon('warning', 'overlay-icon')}</div>
       <h2>Delete All Progress?</h2>
-      <p class="confirm-text">This will permanently remove every high score and best correct-answer record for all game modes and difficulty levels.</p>
+      <p class="confirm-text">This will permanently remove every saved score, best time, most-correct, and combo record across all game modes and difficulty levels.</p>
       <div class="pause-btn-group">
         <button class="pause-action-btn danger-btn" id="confirm-reset-btn">Yes, Delete Everything</button>
         <button class="pause-action-btn restart-btn" id="cancel-reset-btn">Cancel</button>
@@ -918,6 +1112,9 @@ function confirmResetProgress() {
 // ============================================
 function pauseGame() {
   if (state.screen !== 'playing') return;
+  if (isRaceMode()) {
+    syncElapsedMs();
+  }
   state.screen = 'paused';
   clearInterval(state.timerInterval);
   clearInterval(state.comboInterval);
@@ -949,33 +1146,9 @@ function resumeGame() {
   if (overlay) overlay.remove();
 
   state.screen = 'playing';
-  state.timerInterval = setInterval(() => {
-    if (state.screen !== 'playing') return;
-    state.timeLeft--;
-    const timeEl = document.getElementById('time');
-    if (timeEl) {
-      timeEl.textContent = `${state.timeLeft}s`;
-      timeEl.closest('.inline-stat')?.setAttribute('title', `Time: ${state.timeLeft}s`);
-      if (state.timeLeft <= 10) {
-        timeEl.classList.add('time-warn');
-      }
-    }
-    if (state.timeLeft <= 0) {
-      endGame();
-    }
-  }, 1000);
-
-  state.comboInterval = setInterval(() => {
-    if (state.screen !== 'playing') return;
-    if (state.combo > 0) {
-      state.comboTimer--;
-      if (state.comboTimer <= 0) {
-        state.combo = Math.max(0, state.combo - 1);
-        state.comboTimer = 10;
-      }
-      updateComboUI();
-    }
-  }, 1000);
+  startTimerLoop();
+  startComboLoop();
+  updateTimeUI();
 
   // Re-bind input
   if (state.useKeypad) {
@@ -1011,25 +1184,35 @@ function endGame() {
   clearInterval(state.timerInterval);
   clearInterval(state.comboInterval);
   document.removeEventListener('keydown', handlePhysicalKeyboard);
+
+  if (isRaceMode()) {
+    syncElapsedMs();
+  }
+
   state.screen = 'end';
 
   // Update high scores
-  const prevHS = getHighScore(state.operation, state.level.max);
-  const prevHC = getHighCorrect(state.operation, state.level.max);
-  const prevHCO = getHighCombo(state.operation, state.level.max);
+  const prevHS = getHighScore(state.gameMode, state.operation, state.level.max);
+  const prevHC = getHighCorrect(state.gameMode, state.operation, state.level.max);
+  const prevHCO = getHighCombo(state.gameMode, state.operation, state.level.max);
+  const prevBT = getBestTime(state.gameMode, state.operation, state.level.max);
   
   let newRecord = false;
 
   if (state.score > prevHS) {
-    setHighScore(state.operation, state.level.max, state.score);
+    setHighScore(state.gameMode, state.operation, state.level.max, state.score);
     newRecord = true;
   }
-  if (state.correct > prevHC) {
-    setHighCorrect(state.operation, state.level.max, state.correct);
+  if (!isRaceMode() && state.correct > prevHC) {
+    setHighCorrect(state.gameMode, state.operation, state.level.max, state.correct);
+    newRecord = true;
+  }
+  if (isRaceMode() && (prevBT === null || state.elapsedMs < prevBT)) {
+    setBestTime(state.gameMode, state.operation, state.level.max, state.elapsedMs);
     newRecord = true;
   }
   if (state.maxCombo > prevHCO) {
-    setHighCombo(state.operation, state.level.max, state.maxCombo);
+    setHighCombo(state.gameMode, state.operation, state.level.max, state.maxCombo);
     newRecord = true;
   }
 
@@ -1038,33 +1221,44 @@ function endGame() {
 
 function renderEnd(newRecord = false) {
   const op = OPERATIONS[state.operation];
+  const mode = GAME_MODES[state.gameMode];
+  const isRace = isRaceMode();
 
   app.innerHTML = `
     <div class="game-container">
       <div class="header page-header">
-        <h1>Time's Up!</h1>
+        <h1>${mode.resultTitle}</h1>
       </div>
 
       <div class="end-screen glass-panel">
-        <div class="game-mode-label" style="margin:-0.5rem 0">${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
+        <div class="game-mode-label" style="margin:-0.5rem 0">${renderModeIcon(state.gameMode, 'inline-icon')} ${mode.label} • ${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
         
         <div class="final-stats">
           <div class="stat-box">
             <div class="stat-label">Final Score</div>
             <div class="stat-value text-primary">${state.score}</div>
           </div>
+          ${isRace ? `
+            <div class="stat-box">
+              <div class="stat-label">Clear Time</div>
+              <div class="stat-value text-time">${formatElapsedMs(state.elapsedMs)}</div>
+            </div>
+          ` : ''}
           <div class="stat-box">
             <div class="stat-label">Max Combo</div>
             <div class="stat-value glow-magenta" style="color:var(--neon-magenta)">${state.maxCombo}x</div>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Correct</div>
-            <div class="stat-value text-green">${state.correct}</div>
-          </div>
-          <div class="stat-box" style="display:none">
-            <div class="stat-label">Wrong</div>
-            <div class="stat-value text-red">${state.wrong}</div>
-          </div>
+          ${isRace ? `
+            <div class="stat-box">
+              <div class="stat-label">Progress</div>
+              <div class="stat-value text-lime">${getProgressLabel()}</div>
+            </div>
+          ` : `
+            <div class="stat-box">
+              <div class="stat-label">Correct</div>
+              <div class="stat-value text-green">${state.correct}</div>
+            </div>
+          `}
         </div>
 
         ${newRecord ? `<div class="new-record">${renderIcon('spark', 'inline-icon')} New Record!</div>` : ''}
