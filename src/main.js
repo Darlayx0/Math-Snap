@@ -60,7 +60,7 @@ const OPERATIONS = {
 
 const MATH_SYMBOLS = ['Σ', 'π', '√', '∫', '∞', 'Δ', '÷', '±', '≈', '≠', '%', '∂', 'θ', 'λ', 'φ', 'α', 'β', 'γ', '+', '×', '−', '='];
 const GAME_DURATION = 60;
-const CORRECT_SCORE = 20;
+const CORRECT_SCORE = 100;
 const WRONG_PENALTY = 100;
 const COMBO_RING_RADIUS = 16;
 const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
@@ -150,23 +150,79 @@ function renderGuideModal() {
     <div class="guide-modal" id="guide-modal" aria-hidden="true">
       <div class="guide-modal-panel glass-panel">
         <h2 class="guide-title">Panduan Permainan</h2>
-        <div class="guide-rules">
-          <div class="guide-rule">
-            <span class="rule-icon">${renderIcon('time', 'rule-svg')}</span>
-            <span class="guide-rule-text"><strong>60 detik</strong> untuk skor setinggi mungkin</span>
-          </div>
-          <div class="guide-rule">
-            <span class="rule-icon glow-green">${renderIcon('check', 'rule-svg')}</span>
-            <span class="guide-rule-text">Benar: <strong class="text-green">+${CORRECT_SCORE} Base Score</strong> dan combo bertambah.</span>
-          </div>
-          <div class="guide-rule">
-            <span class="rule-icon glow-magenta">${renderIcon('bolt', 'rule-svg')}</span>
-            <span class="guide-rule-text">Combo multiplier memberi bonus dan turun otomatis tiap 10 detik.</span>
-          </div>
-          <div class="guide-rule">
-            <span class="rule-icon glow-red">${renderIcon('close', 'rule-svg')}</span>
-            <span class="guide-rule-text">Salah membuat combo hangus, skor tetap, dan soal tidak berganti.</span>
-          </div>
+        <p class="guide-intro">Mode latihan cepat untuk mengumpulkan skor setinggi mungkin lewat akurasi, kecepatan, dan manajemen combo.</p>
+        <div class="guide-sections">
+          <section class="guide-section">
+            <div class="guide-section-head">
+              <span class="rule-icon">${renderIcon('time', 'rule-svg')}</span>
+              <h3>Alur Permainan</h3>
+            </div>
+            <div class="guide-rules">
+              <div class="guide-rule">
+                <span class="guide-rule-text"><strong>Durasi 60 detik.</strong> Jawab soal sebanyak mungkin sebelum waktu habis.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text"><strong>Pilih operasi dan difficulty</strong> sesuai target latihan Anda sebelum mulai bermain.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text"><strong>Setiap jawaban benar</strong> langsung memunculkan soal baru agar ritme permainan tetap cepat.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="guide-section">
+            <div class="guide-section-head">
+              <span class="rule-icon glow-green">${renderIcon('spark', 'rule-svg')}</span>
+              <h3>Sistem Skor</h3>
+            </div>
+            <div class="guide-rules">
+              <div class="guide-rule">
+                <span class="guide-rule-text">Jawaban benar memberi <strong class="text-green">+${CORRECT_SCORE} base score</strong>.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Semakin cepat menjawab saat combo aktif, semakin besar <strong>bonus tambahan</strong> yang ikut masuk ke skor.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Skor akhir ditentukan oleh kombinasi <strong>akurasi</strong>, <strong>kecepatan</strong>, dan <strong>combo tertinggi</strong>.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="guide-section">
+            <div class="guide-section-head">
+              <span class="rule-icon glow-magenta">${renderIcon('bolt', 'rule-svg')}</span>
+              <h3>Combo & Penalti</h3>
+            </div>
+            <div class="guide-rules">
+              <div class="guide-rule">
+                <span class="guide-rule-text">Setiap jawaban benar menaikkan <strong>combo</strong> dan mengisi ulang timer combo.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Jika timer combo habis, combo akan <strong>turun perlahan</strong> sampai nol.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Jika salah, <strong class="text-red">combo langsung hilang</strong>, skor tidak bertambah, dan Anda harus memperbaiki jawaban pada soal yang sama.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="guide-section">
+            <div class="guide-section-head">
+              <span class="rule-icon">${renderIcon('target', 'rule-svg')}</span>
+              <h3>Kontrol & Record</h3>
+            </div>
+            <div class="guide-rules">
+              <div class="guide-rule">
+                <span class="guide-rule-text">Desktop mendukung input keyboard. Mobile menggunakan keypad khusus, termasuk desimal saat mode division aktif.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Gunakan tombol <strong>pause</strong> kapan saja untuk jeda, restart, atau kembali ke menu.</span>
+              </div>
+              <div class="guide-rule">
+                <span class="guide-rule-text">Setiap difficulty menyimpan record <strong>Best Score</strong>, <strong>Most Correct</strong>, dan <strong>High Combo</strong> secara terpisah.</span>
+              </div>
+            </div>
+          </section>
         </div>
         <button class="secondary-btn guide-close-btn" id="close-guide">Tutup</button>
       </div>
@@ -332,13 +388,12 @@ function renderDifficulty() {
 
   app.innerHTML = `
     <div class="game-container">
-      <div class="header">
-        <h1>Math Snap</h1>
+      <div class="header page-header">
+        <h1>Select Difficulty</h1>
       </div>
 
       <div class="diff-screen glass-panel">
         <div class="op-badge">${renderOperationIcon(state.operation, 'badge-icon')} <span>${op.label}</span></div>
-        <h2>Select Difficulty</h2>
         
         <div class="diff-grid">
           ${op.levels.map((lvl, i) => `
@@ -392,7 +447,7 @@ function renderGame() {
 
   app.innerHTML = `
     <div class="game-container game-active">
-      <div class="header game-header-top">
+      <div class="header page-header game-header-top">
         <h1>${state.level.label}</h1>
       </div>
 
@@ -909,12 +964,11 @@ function renderEnd(newRecord = false) {
 
   app.innerHTML = `
     <div class="game-container">
-      <div class="header">
-        <h1>Math Snap</h1>
+      <div class="header page-header">
+        <h1>Time's Up!</h1>
       </div>
 
       <div class="end-screen glass-panel">
-        <h2>${renderIcon('time', 'headline-icon')} Time's Up!</h2>
         <div class="game-mode-label" style="margin:-0.5rem 0">${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
         
         <div class="final-stats">
