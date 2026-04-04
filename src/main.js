@@ -145,86 +145,147 @@ function renderHudStat(icon, id, value, tone, title) {
   return `<div class="hud-cell ${tone}" title="${title}"><span class="hud-icon">${renderIcon(icon, 'hud-svg')}</span><span class="hud-val" id="${id}">${value}</span></div>`;
 }
 
+const GUIDE_SECTIONS = [
+  {
+    id: 'overview',
+    icon: 'spark',
+    label: 'Overview',
+    title: 'Cara kerja Math Snap',
+    lead: 'Panduan ringkas untuk memahami flow permainan dalam beberapa detik.',
+    highlights: [
+      ['Mode cepat 60 detik', 'Tujuan utama Anda adalah menjawab sebanyak mungkin sebelum waktu habis.'],
+      ['Pilih operasi dan difficulty', 'Setiap mode punya record terpisah sehingga progres latihan tetap rapi.'],
+      ['Soal baru muncul instan', 'Setiap jawaban benar langsung lanjut ke soal berikutnya agar ritme tetap tinggi.'],
+    ],
+    tips: [
+      'Mulai dari difficulty yang nyaman lalu naik bertahap.',
+      'Jaga ritme menjawab, jangan terlalu lama di satu soal.',
+    ],
+  },
+  {
+    id: 'scoring',
+    icon: 'trophy',
+    label: 'Scoring',
+    title: 'Sistem skor dan bonus',
+    lead: 'Skor bukan hanya soal benar atau salah, tetapi juga soal kecepatan menjaga momentum.',
+    highlights: [
+      [`Base score +${CORRECT_SCORE}`, 'Setiap jawaban benar selalu memberi skor dasar yang sama besar.'],
+      ['Bonus dari combo', 'Semakin cepat menjawab saat combo aktif, bonus tambahannya semakin tinggi.'],
+      ['Skor akhir', 'Total akhir dibentuk dari base score, bonus combo, dan konsistensi Anda.'],
+    ],
+    tips: [
+      'Jawaban cepat saat combo tinggi paling efektif untuk mengejar skor.',
+      'Kalau ragu terlalu lama, ritme bisa lebih penting daripada memaksa satu soal.',
+    ],
+  },
+  {
+    id: 'combo',
+    icon: 'bolt',
+    label: 'Combo',
+    title: 'Combo, timer, dan penalti',
+    lead: 'Combo adalah inti permainan cepat ini. Ia memberi tekanan sekaligus peluang bonus besar.',
+    highlights: [
+      ['Combo naik saat benar', 'Setiap jawaban benar menaikkan multiplier dan me-reset timer combo.'],
+      ['Ring combo adalah indikator waktu', 'Saat ring menipis, berarti waktu menjaga combo hampir habis.'],
+      ['Salah menghapus momentum', 'Jawaban salah membuat combo kembali ke nol dan skor tidak bertambah.'],
+    ],
+    tips: [
+      'Perhatikan ring combo, bukan hanya angka skor.',
+      'Kecepatan stabil lebih kuat daripada buru-buru lalu sering salah.',
+    ],
+  },
+  {
+    id: 'controls',
+    icon: 'guide',
+    label: 'Controls',
+    title: 'Kontrol di desktop dan mobile',
+    lead: 'Kontrol dibuat cepat dan sederhana agar fokus tetap di perhitungan.',
+    highlights: [
+      ['Desktop', 'Gunakan keyboard lalu tekan Enter untuk submit jawaban.'],
+      ['Mobile', 'Gunakan keypad bawaan game yang sudah disesuaikan untuk angka, negatif, dan desimal saat division.'],
+      ['Pause', 'Tombol pause dapat dipakai untuk jeda, restart, atau kembali ke menu.'],
+    ],
+    tips: [
+      'Mode division menerima jawaban desimal.',
+      'Jika bermain di layar kecil, fokuskan pandangan ke soal dan HUD atas.',
+    ],
+  },
+  {
+    id: 'records',
+    icon: 'target',
+    label: 'Records',
+    title: 'Record dan progres bermain',
+    lead: 'Setiap pilihan difficulty menyimpan progresnya sendiri sehingga perkembangan Anda mudah dipantau.',
+    highlights: [
+      ['Best Score', 'Skor tertinggi yang pernah Anda capai pada mode dan difficulty tersebut.'],
+      ['Most Correct', 'Jumlah jawaban benar terbanyak dalam satu sesi pada mode dan difficulty yang sama.'],
+      ['High Combo', 'Combo tertinggi yang pernah Anda bangun di sesi tersebut.'],
+    ],
+    tips: [
+      'Gunakan reset progress hanya jika benar-benar ingin menghapus semua catatan latihan.',
+      'Bandingkan record per difficulty untuk melihat peningkatan kemampuan Anda.',
+    ],
+  },
+];
+
 function renderGuideModal() {
+  const nav = GUIDE_SECTIONS.map((section, index) => `
+    <button class="guide-nav-btn ${index === 0 ? 'is-active' : ''}" data-guide-tab="${section.id}" type="button">
+      <span class="guide-nav-icon">${renderIcon(section.icon, 'guide-nav-svg')}</span>
+      <span class="guide-nav-copy">
+        <span class="guide-nav-label">${section.label}</span>
+        <span class="guide-nav-sub">${section.title}</span>
+      </span>
+    </button>
+  `).join('');
+
+  const panels = GUIDE_SECTIONS.map((section, index) => `
+    <section class="guide-panel ${index === 0 ? 'is-active' : ''}" data-guide-panel="${section.id}">
+      <div class="guide-panel-hero">
+        <div class="guide-panel-badge">
+          <span class="guide-panel-icon">${renderIcon(section.icon, 'guide-panel-svg')}</span>
+          <span>${section.label}</span>
+        </div>
+        <h3>${section.title}</h3>
+        <p>${section.lead}</p>
+      </div>
+      <div class="guide-highlight-grid">
+        ${section.highlights.map(([label, body]) => `
+          <article class="guide-highlight-card">
+            <div class="guide-highlight-title">${label}</div>
+            <div class="guide-highlight-body">${body}</div>
+          </article>
+        `).join('')}
+      </div>
+      <div class="guide-tip-box">
+        <div class="guide-tip-title">${renderIcon('spark', 'mini-icon')}Quick Tips</div>
+        <ul class="guide-tip-list">
+          ${section.tips.map((tip) => `<li>${tip}</li>`).join('')}
+        </ul>
+      </div>
+    </section>
+  `).join('');
+
   return `
     <div class="guide-modal" id="guide-modal" aria-hidden="true">
       <div class="guide-modal-panel glass-panel">
-        <h2 class="guide-title">Panduan Permainan</h2>
-        <p class="guide-intro">Mode latihan cepat untuk mengumpulkan skor setinggi mungkin lewat akurasi, kecepatan, dan manajemen combo.</p>
-        <div class="guide-sections">
-          <section class="guide-section">
-            <div class="guide-section-head">
-              <span class="rule-icon">${renderIcon('time', 'rule-svg')}</span>
-              <h3>Alur Permainan</h3>
+        <div class="guide-shell">
+          <div class="guide-header-row">
+            <div class="guide-header-copy">
+              <h2 class="guide-title">Panduan Permainan</h2>
+              <p class="guide-intro">Semua fitur utama dijelaskan per bagian agar mudah dipelajari tanpa terasa seperti membaca blok teks panjang.</p>
             </div>
-            <div class="guide-rules">
-              <div class="guide-rule">
-                <span class="guide-rule-text"><strong>Durasi 60 detik.</strong> Jawab soal sebanyak mungkin sebelum waktu habis.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text"><strong>Pilih operasi dan difficulty</strong> sesuai target latihan Anda sebelum mulai bermain.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text"><strong>Setiap jawaban benar</strong> langsung memunculkan soal baru agar ritme permainan tetap cepat.</span>
-              </div>
+            <button class="secondary-btn guide-close-btn guide-close-top" id="close-guide" type="button">Tutup</button>
+          </div>
+          <div class="guide-layout">
+            <nav class="guide-nav" aria-label="Navigasi panduan">
+              ${nav}
+            </nav>
+            <div class="guide-content" id="guide-content">
+              ${panels}
             </div>
-          </section>
-
-          <section class="guide-section">
-            <div class="guide-section-head">
-              <span class="rule-icon glow-green">${renderIcon('spark', 'rule-svg')}</span>
-              <h3>Sistem Skor</h3>
-            </div>
-            <div class="guide-rules">
-              <div class="guide-rule">
-                <span class="guide-rule-text">Jawaban benar memberi <strong class="text-green">+${CORRECT_SCORE} base score</strong>.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Semakin cepat menjawab saat combo aktif, semakin besar <strong>bonus tambahan</strong> yang ikut masuk ke skor.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Skor akhir ditentukan oleh kombinasi <strong>akurasi</strong>, <strong>kecepatan</strong>, dan <strong>combo tertinggi</strong>.</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="guide-section">
-            <div class="guide-section-head">
-              <span class="rule-icon glow-magenta">${renderIcon('bolt', 'rule-svg')}</span>
-              <h3>Combo & Penalti</h3>
-            </div>
-            <div class="guide-rules">
-              <div class="guide-rule">
-                <span class="guide-rule-text">Setiap jawaban benar menaikkan <strong>combo</strong> dan mengisi ulang timer combo.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Jika timer combo habis, combo akan <strong>turun perlahan</strong> sampai nol.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Jika salah, <strong class="text-red">combo langsung hilang</strong>, skor tidak bertambah, dan Anda harus memperbaiki jawaban pada soal yang sama.</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="guide-section">
-            <div class="guide-section-head">
-              <span class="rule-icon">${renderIcon('target', 'rule-svg')}</span>
-              <h3>Kontrol & Record</h3>
-            </div>
-            <div class="guide-rules">
-              <div class="guide-rule">
-                <span class="guide-rule-text">Desktop mendukung input keyboard. Mobile menggunakan keypad khusus, termasuk desimal saat mode division aktif.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Gunakan tombol <strong>pause</strong> kapan saja untuk jeda, restart, atau kembali ke menu.</span>
-              </div>
-              <div class="guide-rule">
-                <span class="guide-rule-text">Setiap difficulty menyimpan record <strong>Best Score</strong>, <strong>Most Correct</strong>, dan <strong>High Combo</strong> secara terpisah.</span>
-              </div>
-            </div>
-          </section>
+          </div>
         </div>
-        <button class="secondary-btn guide-close-btn" id="close-guide">Tutup</button>
       </div>
     </div>
   `;
@@ -350,9 +411,20 @@ function renderMenu() {
   `;
 
   const guideModal = document.getElementById('guide-modal');
+  const setGuideTab = (targetId) => {
+    guideModal?.querySelectorAll('[data-guide-tab]').forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.guideTab === targetId);
+    });
+    guideModal?.querySelectorAll('[data-guide-panel]').forEach((panel) => {
+      panel.classList.toggle('is-active', panel.dataset.guidePanel === targetId);
+    });
+    document.getElementById('guide-content')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   document.getElementById('open-guide')?.addEventListener('click', () => {
     guideModal?.classList.add('is-open');
     guideModal?.setAttribute('aria-hidden', 'false');
+    setGuideTab(GUIDE_SECTIONS[0].id);
   });
   document.getElementById('close-guide')?.addEventListener('click', () => {
     guideModal?.classList.remove('is-open');
@@ -363,6 +435,11 @@ function renderMenu() {
       guideModal.classList.remove('is-open');
       guideModal.setAttribute('aria-hidden', 'true');
     }
+  });
+  guideModal?.querySelectorAll('[data-guide-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      setGuideTab(button.dataset.guideTab);
+    });
   });
 
   document.querySelectorAll('.op-card').forEach(card => {
