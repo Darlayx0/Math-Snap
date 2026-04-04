@@ -344,15 +344,17 @@ function renderDifficulty() {
           ${op.levels.map((lvl, i) => `
             <div class="diff-card" data-idx="${i}" id="diff-${i}">
               <div class="diff-main">
-                <div class="diff-label">${lvl.label}</div>
+                <div class="diff-head">
+                  <div class="diff-label">${lvl.label}</div>
+                  <div class="diff-side">
+                    ${renderRankDots(lvl.stars.length)}
+                  </div>
+                </div>
                 <div class="diff-meta">
                   <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
                   <span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>
                   <span class="diff-stat combo-record">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
                 </div>
-              </div>
-              <div class="diff-side">
-                ${renderRankDots(lvl.stars.length)}
               </div>
             </div>
           `).join('')}
@@ -390,6 +392,10 @@ function renderGame() {
 
   app.innerHTML = `
     <div class="game-container game-active">
+      <div class="header game-header-top">
+        <h1>${state.level.label}</h1>
+      </div>
+
       <div class="game-screen glass-panel">
 
         <div class="game-hud">
@@ -402,7 +408,6 @@ function renderGame() {
               </svg>
               <span class="combo-val" id="combo">0x</span>
             </div>
-            <div class="hud-mode">${state.level.label}</div>
           </div>
           <div class="hud-stats">
             ${renderHudStat('time', 'time', state.timeLeft + 's', 'ht-time' + (state.timeLeft <= 10 ? ' time-warn' : ''), 'Time')}

@@ -622,11 +622,19 @@ body::after {
 }
 
 .diff-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-template-rows: auto auto;
   gap: 0.45rem;
   text-align: left;
+  width: 100%;
+}
+
+.diff-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  width: 100%;
 }
 
 .diff-card .diff-label {
@@ -634,12 +642,15 @@ body::after {
   font-size: 0.95rem;
   font-family: var(--font-mono);
   color: var(--text-main);
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .diff-meta {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
+  width: 100%;
 }
 
 .diff-stat {
@@ -653,6 +664,10 @@ body::after {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .diff-stat.score-record {
@@ -680,7 +695,7 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-left: 1rem;
+  flex-shrink: 0;
 }
 
 .diff-rank {
@@ -851,6 +866,17 @@ body::after {
 
 .game-active .header { display: none; }
 
+.game-active .game-header-top {
+  display: block;
+  padding: 0.1rem 0 0.15rem;
+}
+
+.game-header-top h1 {
+  font-size: 1.12rem;
+  margin-bottom: 0;
+  letter-spacing: -0.2px;
+}
+
 /* ——— HUD Strip ——— */
 .game-hud {
   display: flex;
@@ -864,9 +890,7 @@ body::after {
 .hud-left {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-right: auto;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .hud-mode {
@@ -879,9 +903,12 @@ body::after {
 }
 
 .hud-stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .hud-cell {
@@ -893,6 +920,19 @@ body::after {
   font-size: 0.92rem;
   line-height: 1;
   white-space: nowrap;
+  min-width: 0;
+}
+
+.ht-time {
+  justify-content: flex-start;
+}
+
+.ht-score {
+  justify-content: center;
+}
+
+.ht-correct {
+  justify-content: flex-end;
 }
 
 .hud-icon {
@@ -1595,21 +1635,24 @@ body::after {
   .key-btn { padding: 0.72rem; font-size: 1.2rem; }
   .op-card { padding: 1.4rem 0.8rem 1.2rem; }
   .op-card .op-icon { width: 4rem; height: 4rem; }
-  .diff-card { align-items: flex-start; }
-  .diff-side { padding-left: 0; }
+  .diff-card { align-items: stretch; }
+  .diff-head { gap: 0.65rem; }
   .screen-actions,
   .menu-actions { flex-direction: column; align-items: stretch; }
   .back-link,
   .danger-link,
   .utility-link { justify-content: center; width: 100%; }
   .game-hud { gap: 0.4rem; }
+  .hud-stats { gap: 0.35rem; }
   .hud-cell { font-size: 0.82rem; gap: 0.2rem; }
   .hud-svg { width: 0.75rem; height: 0.75rem; }
   .hud-combo-wrap { width: 2rem; height: 2rem; }
   .combo-val { font-size: 0.62rem; }
-  .hud-mode { font-size: 0.55rem; letter-spacing: 1.2px; }
   .pause-btn { width: 34px; height: 34px; border-radius: 8px; }
   .game-screen { padding: 0.85rem 1rem 1.25rem !important; }
+  .game-header-top h1 { font-size: 0.98rem; }
+  .diff-meta { gap: 0.32rem; }
+  .diff-stat { padding: 0.24rem 0.45rem; font-size: 0.64rem; }
 }
 
 @media (min-width: 481px) and (max-width: 768px) {
