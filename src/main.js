@@ -85,10 +85,11 @@ const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
 // Game State
 // ============================================
 let state = {
-  screen: 'menu', // menu | difficulty | playing | paused | end
+  screen: 'menu', // menu | playing | paused | end
   gameMode: 'sprint',
-  operation: null,  // 'addition' | 'subtraction' | 'multiplication' | 'division'
-  level: null,      // level object
+  operation: 'addition',
+  selectedLevelIdx: 0,
+  level: null,
   score: 0,
   correct: 0,
   wrong: 0,
@@ -465,7 +466,6 @@ function createMathBackground() {
 function render() {
   switch (state.screen) {
     case 'menu': renderMenu(); break;
-    case 'difficulty': renderDifficulty(); break;
     case 'playing': renderGame(); break;
     case 'end': renderEnd(); break;
   }
@@ -476,67 +476,91 @@ function render() {
 // ============================================
 function renderMenu() {
   const activeMode = GAME_MODES[state.gameMode];
+  const op = OPERATIONS[state.operation];
+  const hs = (lvl) => getHighScore(state.gameMode, state.operation, lvl.max);
+  const hc = (lvl) => getHighCorrect(state.gameMode, state.operation, lvl.max);
+  const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
+  const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
+
+  const opCards = Object.entries(OPERATIONS).map(([key, o]) => `
+    <button class="op-chip ${key} ${state.operation === key ? 'is-active' : ''}" data-op="${key}" type="button" id="op-${key}">
+      <span class="op-chip-icon">${renderOperationIcon(key, 'op-chip-svg')}</span>
+      <span class="op-chip-label">${o.label}</span>
+    </button>
+  `).join('');
+
+  const diffCards = op.levels.map((lvl, i) => `
+    <div class="diff-card ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
+      <div class="diff-main">
+        <div class="diff-head">
+          <div class="diff-label">${lvl.label}</div>
+          <div class="diff-side">${renderRankDots(lvl.stars.length)}</div>
+        </div>
+        <div class="diff-meta">
+          <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} ${hs(lvl)}</span>
+          ${state.gameMode === 'race10'
+            ? `<span class="diff-stat time-record">${renderIcon('time', 'mini-icon')} ${formatElapsedMs(hbt(lvl))}</span>`
+            : `<span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} ${hc(lvl)}</span>`}
+          <span class="diff-stat combo-record">${renderIcon('bolt', 'mini-icon')} ${hco(lvl)}x</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
 
   app.innerHTML = `
-    <div class="game-container">
-      <div class="header">
-        <h1>Math Snap</h1>
-        <div class="subtitle">${renderLabelIcon('bolt', 'Speed Math Challenge')}</div>
-      </div>
-
-      <div class="menu-screen glass-panel">
-        <div class="mode-switch" role="tablist" aria-label="Game mode">
-          ${Object.entries(GAME_MODES).map(([key, mode]) => `
-            <button class="mode-tab ${state.gameMode === key ? 'is-active' : ''}" data-mode="${key}" type="button" aria-pressed="${state.gameMode === key}">
-              <span class="mode-tab-icon">${renderModeIcon(key, 'button-icon')}</span>
-              <span class="mode-tab-copy">
-                <span class="mode-tab-label">${mode.label}</span>
-                <span class="mode-tab-desc">${mode.menuDesc}</span>
-              </span>
-            </button>
-          `).join('')}
-        </div>
-
-        <div class="menu-mode-callout">
-          <div class="menu-mode-badge">${renderModeIcon(state.gameMode, 'badge-icon')}<span>${activeMode.label}</span></div>
-          <p>${activeMode.menuDesc}</p>
-        </div>
-
-        <h2>Choose Operation</h2>
-        <div class="operation-grid">
-          <div class="op-card addition" data-op="addition" id="op-addition">
-            <div class="op-icon">${renderOperationIcon('addition', 'operation-icon')}</div>
-            <div class="op-label">Addition</div>
-            <div class="op-desc">Add numbers fast</div>
+    <div class="game-container menu-container">
+      <div class="menu-layout">
+        <!-- LEFT PANEL (desktop) / TOP SECTION (mobile) -->
+        <div class="menu-panel-left">
+          <div class="menu-left-top">
+            <div class="header">
+              <h1>Math Snap</h1>
+              <div class="subtitle">${renderLabelIcon('bolt', 'Speed Math Challenge')}</div>
+            </div>
           </div>
-          <div class="op-card subtraction" data-op="subtraction" id="op-subtraction">
-            <div class="op-icon">${renderOperationIcon('subtraction', 'operation-icon')}</div>
-            <div class="op-label">Subtraction</div>
-            <div class="op-desc">Subtract with speed</div>
+          <div class="menu-left-center">
+            <div class="mode-switch" role="tablist" aria-label="Game mode">
+              ${Object.entries(GAME_MODES).map(([key, mode]) => `
+                <button class="mode-tab ${state.gameMode === key ? 'is-active' : ''}" data-mode="${key}" type="button" aria-pressed="${state.gameMode === key}">
+                  <span class="mode-tab-icon">${renderModeIcon(key, 'button-icon')}</span>
+                  <span class="mode-tab-copy">
+                    <span class="mode-tab-label">${mode.label}</span>
+                    <span class="mode-tab-desc">${mode.menuDesc}</span>
+                  </span>
+                </button>
+              `).join('')}
+            </div>
           </div>
-          <div class="op-card multiplication" data-op="multiplication" id="op-multiplication">
-            <div class="op-icon">${renderOperationIcon('multiplication', 'operation-icon')}</div>
-            <div class="op-label">Multiply</div>
-            <div class="op-desc">Times table mastery</div>
-          </div>
-          <div class="op-card division" data-op="division" id="op-division">
-            <div class="op-icon">${renderOperationIcon('division', 'operation-icon')}</div>
-            <div class="op-label">Division</div>
-            <div class="op-desc">Decimal division drill</div>
+          <div class="menu-left-bottom">
+            <button class="utility-link" id="open-guide">${renderIcon('guide', 'button-icon')}Panduan Permainan</button>
+            <button class="danger-link" id="reset-progress-menu">Reset All Progress</button>
           </div>
         </div>
-        
-        <div class="divider"></div>
-        
-        <div class="menu-actions">
-          <button class="utility-link" id="open-guide">${renderIcon('guide', 'button-icon')}Panduan Permainan</button>
-          <button class="danger-link" id="reset-progress-menu">Reset All Progress</button>
+
+        <!-- RIGHT PANEL (desktop) / BOTTOM SECTION (mobile) -->
+        <div class="menu-panel-right glass-panel">
+          <div class="panel-right-header">
+            <div class="panel-mode-badge">${renderModeIcon(state.gameMode, 'badge-icon')}<span>${activeMode.label}</span></div>
+          </div>
+
+          <div class="panel-right-body">
+            <div class="op-grid-4">${opCards}</div>
+            <div class="diff-section">
+              <div class="diff-grid">${diffCards}</div>
+            </div>
+            <button class="primary-btn start-btn" id="start-game-btn">${renderIcon('play', 'button-icon')} Mulai</button>
+            <div class="mobile-actions">
+              <button class="utility-link" id="open-guide-mobile">${renderIcon('guide', 'button-icon')}Panduan Permainan</button>
+              <button class="danger-link" id="reset-progress-mobile">Reset All Progress</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     ${renderGuideModal()}
   `;
 
+  // --- Event bindings ---
   const guideModal = document.getElementById('guide-modal');
   const setGuideTab = (targetId) => {
     guideModal?.querySelectorAll('[data-guide-tab]').forEach((button) => {
@@ -547,7 +571,6 @@ function renderMenu() {
     });
     document.getElementById('guide-content')?.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   document.getElementById('open-guide')?.addEventListener('click', () => {
     guideModal?.classList.add('is-open');
     guideModal?.setAttribute('aria-hidden', 'false');
@@ -564,95 +587,52 @@ function renderMenu() {
     }
   });
   guideModal?.querySelectorAll('[data-guide-tab]').forEach((button) => {
-    button.addEventListener('click', () => {
-      setGuideTab(button.dataset.guideTab);
-    });
+    button.addEventListener('click', () => setGuideTab(button.dataset.guideTab));
   });
+
+  // Mode tabs
   document.querySelectorAll('.mode-tab').forEach((button) => {
     button.addEventListener('click', () => {
       state.gameMode = button.dataset.mode;
+      state.selectedLevelIdx = 0;
       render();
     });
   });
 
-  document.querySelectorAll('.op-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.operation = card.dataset.op;
-      state.screen = 'difficulty';
+  // Operation chips
+  document.querySelectorAll('.op-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      state.operation = chip.dataset.op;
+      state.selectedLevelIdx = 0;
       render();
     });
+  });
+
+  // Difficulty cards (select, not start)
+  document.querySelectorAll('.diff-card').forEach(card => {
+    card.addEventListener('click', () => {
+      state.selectedLevelIdx = parseInt(card.dataset.idx);
+      render();
+    });
+  });
+
+  // Start button
+  document.getElementById('start-game-btn')?.addEventListener('click', () => {
+    state.level = op.levels[state.selectedLevelIdx];
+    startGame();
   });
 
   document.getElementById('reset-progress-menu').addEventListener('click', confirmResetProgress);
+  document.getElementById('reset-progress-mobile')?.addEventListener('click', confirmResetProgress);
+  document.getElementById('open-guide-mobile')?.addEventListener('click', () => {
+    guideModal?.classList.add('is-open');
+    guideModal?.setAttribute('aria-hidden', 'false');
+    setGuideTab(GUIDE_SECTIONS[0].id);
+  });
 }
 
-// ============================================
-// Difficulty Select Screen
-// ============================================
-function renderDifficulty() {
-  const op = OPERATIONS[state.operation];
-  const mode = GAME_MODES[state.gameMode];
-  const hs = (lvl) => getHighScore(state.gameMode, state.operation, lvl.max);
-  const hc = (lvl) => getHighCorrect(state.gameMode, state.operation, lvl.max);
-  const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
-  const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
 
-  app.innerHTML = `
-    <div class="game-container">
-      <div class="header page-header">
-        <h1>Select Difficulty</h1>
-      </div>
 
-      <div class="diff-screen glass-panel">
-        <div class="selection-badges">
-          <div class="op-badge mode-badge mode-${state.gameMode}">${renderModeIcon(state.gameMode, 'badge-icon')} <span>${mode.label}</span></div>
-          <div class="op-badge">${renderOperationIcon(state.operation, 'badge-icon')} <span>${op.label}</span></div>
-        </div>
-        
-        <div class="diff-grid">
-          ${op.levels.map((lvl, i) => `
-            <div class="diff-card" data-idx="${i}" id="diff-${i}">
-              <div class="diff-main">
-                <div class="diff-head">
-                  <div class="diff-label">${lvl.label}</div>
-                  <div class="diff-side">
-                    ${renderRankDots(lvl.stars.length)}
-                  </div>
-                </div>
-                <div class="diff-meta">
-                  <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} Best: ${hs(lvl)}</span>
-                  ${state.gameMode === 'race10'
-                    ? `<span class="diff-stat time-record">${renderIcon('time', 'mini-icon')} Time: ${formatElapsedMs(hbt(lvl))}</span>`
-                    : `<span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} Most: ${hc(lvl)}</span>`}
-                  <span class="diff-stat combo-record">${renderIcon('bolt', 'mini-icon')} Combo: ${hco(lvl)}x</span>
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <div class="screen-actions">
-          <button class="back-link" id="back-menu">← Back to Menu</button>
-          <button class="danger-link" id="reset-progress-diff">Reset All Progress</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.querySelectorAll('.diff-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.level = op.levels[parseInt(card.dataset.idx)];
-      startGame();
-    });
-  });
-
-  document.getElementById('back-menu').addEventListener('click', () => {
-    state.screen = 'menu';
-    render();
-  });
-
-  document.getElementById('reset-progress-diff').addEventListener('click', confirmResetProgress);
-}
 
 // ============================================
 // Game Screen
@@ -973,10 +953,24 @@ function animateProblem() {
   const el = document.getElementById('problem');
   if (el) {
     el.textContent = state.currentProblem;
+    el.style.fontSize = '';
     el.classList.remove('pop');
     void el.offsetWidth;
+    fitProblemText(el);
     el.classList.add('pop');
   }
+}
+
+function fitProblemText(el) {
+  const container = el.parentElement;
+  if (!container) return;
+  const maxW = container.clientWidth - 8;
+  const baseSizes = [3.3, 2.8, 2.3, 1.9, 1.5, 1.2];
+  for (const size of baseSizes) {
+    el.style.fontSize = size + 'rem';
+    if (el.scrollWidth <= maxW) return;
+  }
+  el.style.fontSize = '1.2rem';
 }
 
 function checkAnswer(userAnswer) {
@@ -1191,38 +1185,46 @@ function endGame() {
 
   state.screen = 'end';
 
-  // Update high scores
   const prevHS = getHighScore(state.gameMode, state.operation, state.level.max);
   const prevHC = getHighCorrect(state.gameMode, state.operation, state.level.max);
   const prevHCO = getHighCombo(state.gameMode, state.operation, state.level.max);
   const prevBT = getBestTime(state.gameMode, state.operation, state.level.max);
-  
-  let newRecord = false;
+
+  const records = { score: false, correct: false, time: false, combo: false };
 
   if (state.score > prevHS) {
     setHighScore(state.gameMode, state.operation, state.level.max, state.score);
-    newRecord = true;
+    records.score = true;
   }
   if (!isRaceMode() && state.correct > prevHC) {
     setHighCorrect(state.gameMode, state.operation, state.level.max, state.correct);
-    newRecord = true;
+    records.correct = true;
   }
   if (isRaceMode() && (prevBT === null || state.elapsedMs < prevBT)) {
     setBestTime(state.gameMode, state.operation, state.level.max, state.elapsedMs);
-    newRecord = true;
+    records.time = true;
   }
   if (state.maxCombo > prevHCO) {
     setHighCombo(state.gameMode, state.operation, state.level.max, state.maxCombo);
-    newRecord = true;
+    records.combo = true;
   }
 
-  renderEnd(newRecord);
+  renderEnd(records);
 }
 
-function renderEnd(newRecord = false) {
+function renderEnd(records = {}) {
   const op = OPERATIONS[state.operation];
   const mode = GAME_MODES[state.gameMode];
   const isRace = isRaceMode();
+
+  const bestScore = getHighScore(state.gameMode, state.operation, state.level.max);
+  const bestCombo = getHighCombo(state.gameMode, state.operation, state.level.max);
+  const bestCorrect = getHighCorrect(state.gameMode, state.operation, state.level.max);
+  const bestTime = getBestTime(state.gameMode, state.operation, state.level.max);
+
+  const newBadge = `<span class="stat-new">NEW</span>`;
+
+  const hasAnyRecord = Object.values(records).some(v => v);
 
   app.innerHTML = `
     <div class="game-container">
@@ -1232,40 +1234,54 @@ function renderEnd(newRecord = false) {
 
       <div class="end-screen glass-panel">
         <div class="game-mode-label" style="margin:-0.5rem 0">${renderModeIcon(state.gameMode, 'inline-icon')} ${mode.label} • ${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
-        
+
+        ${hasAnyRecord ? `<div class="new-record">${renderIcon('spark', 'inline-icon')} New Record!</div>` : ''}
+
         <div class="final-stats">
-          <div class="stat-box">
-            <div class="stat-label">Final Score</div>
-            <div class="stat-value text-primary">${state.score}</div>
-          </div>
-          ${isRace ? `
-            <div class="stat-box">
-              <div class="stat-label">Clear Time</div>
-              <div class="stat-value text-time">${formatElapsedMs(state.elapsedMs)}</div>
+          <div class="stat-row ${records.score ? 'is-record' : ''}">
+            <div class="stat-row-label">${renderIcon('spark', 'stats-icon')} Score ${records.score ? newBadge : ''}</div>
+            <div class="stat-row-values">
+              <span class="stat-session text-primary">${state.score}</span>
+              <span class="stat-best">${renderIcon('trophy', 'mini-icon')} ${bestScore}</span>
             </div>
-          ` : ''}
-          <div class="stat-box">
-            <div class="stat-label">Max Combo</div>
-            <div class="stat-value glow-magenta" style="color:var(--neon-magenta)">${state.maxCombo}x</div>
           </div>
+
           ${isRace ? `
-            <div class="stat-box">
-              <div class="stat-label">Progress</div>
-              <div class="stat-value text-lime">${getProgressLabel()}</div>
+            <div class="stat-row ${records.time ? 'is-record' : ''}">
+              <div class="stat-row-label">${renderIcon('time', 'stats-icon')} Clear Time ${records.time ? newBadge : ''}</div>
+              <div class="stat-row-values">
+                <span class="stat-session text-time">${formatElapsedMs(state.elapsedMs)}</span>
+                <span class="stat-best">${renderIcon('trophy', 'mini-icon')} ${formatElapsedMs(bestTime)}</span>
+              </div>
             </div>
           ` : `
-            <div class="stat-box">
-              <div class="stat-label">Correct</div>
-              <div class="stat-value text-green">${state.correct}</div>
+            <div class="stat-row ${records.correct ? 'is-record' : ''}">
+              <div class="stat-row-label">${renderIcon('check', 'stats-icon')} Correct ${records.correct ? newBadge : ''}</div>
+              <div class="stat-row-values">
+                <span class="stat-session text-green">${state.correct}</span>
+                <span class="stat-best">${renderIcon('trophy', 'mini-icon')} ${bestCorrect}</span>
+              </div>
             </div>
           `}
-        </div>
 
-        ${newRecord ? `<div class="new-record">${renderIcon('spark', 'inline-icon')} New Record!</div>` : ''}
+          <div class="stat-row ${records.combo ? 'is-record' : ''}">
+            <div class="stat-row-label">${renderIcon('bolt', 'stats-icon')} Max Combo ${records.combo ? newBadge : ''}</div>
+            <div class="stat-row-values">
+              <span class="stat-session glow-magenta">${state.maxCombo}x</span>
+              <span class="stat-best">${renderIcon('trophy', 'mini-icon')} ${bestCombo}x</span>
+            </div>
+          </div>
+
+          <div class="stat-row stat-row-info">
+            <div class="stat-row-label">${renderIcon('close', 'stats-icon')} Wrong</div>
+            <div class="stat-row-values">
+              <span class="stat-session text-red">${state.wrong}</span>
+            </div>
+          </div>
+        </div>
 
         <div class="end-buttons">
           <button class="primary-btn" id="retry-btn">${renderIcon('refresh', 'button-icon')} Play Again</button>
-          <button class="secondary-btn" id="diff-btn">${renderIcon('chart', 'button-icon')} Change Difficulty</button>
           <button class="secondary-btn" id="home-btn">${renderIcon('home', 'button-icon')} Main Menu</button>
         </div>
       </div>
@@ -1273,10 +1289,6 @@ function renderEnd(newRecord = false) {
   `;
 
   document.getElementById('retry-btn').addEventListener('click', () => startGame());
-  document.getElementById('diff-btn').addEventListener('click', () => {
-    state.screen = 'difficulty';
-    render();
-  });
   document.getElementById('home-btn').addEventListener('click', () => {
     state.screen = 'menu';
     render();
