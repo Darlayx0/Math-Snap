@@ -1455,6 +1455,45 @@ body::after {
   margin: -0.15rem 0 0.85rem;
 }
 
+/* ——— Overdrive HUD ——— */
+.overdrive-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: -0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.overdrive-hud-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(10, 15, 25, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+  font-family: var(--font-number);
+}
+
+.overdrive-hud-label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-main);
+}
+
+.overdrive-hud-val {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 /* â€”â€”â€” HUD Strip â€”â€”â€” */
 .game-hud {
   display: flex;

@@ -12,6 +12,14 @@ const DIFFICULTY_TONES = {
   Master: 'master',
 };
 
+const OVERDRIVE_MULTIPLIERS = {
+  easy: 1.5,
+  normal: 2,
+  hard: 3,
+  expert: 6,
+  master: 12,
+};
+
 const OPERATIONS = {
   addition: {
     label: 'Addition',
@@ -80,6 +88,12 @@ const GAME_MODES = {
     menuDesc: 'Selesaikan 10 soal benar secepat mungkin sambil menjaga combo.',
     resultTitle: 'Race Complete!',
   },
+  overdrive: {
+    label: 'Overdrive',
+    icon: 'bolt',
+    menuDesc: 'Mulai 60s, +5s per benar, cap 3 menit. Soal berevolusi tiap kelipatan skor 1000.',
+    resultTitle: 'Overdrive Complete!',
+  },
 };
 
 const MATH_SYMBOLS = ['Σ', 'π', '√', '∫', '∞', 'Δ', '÷', '±', '≈', '≠', '%', '∂', 'θ', 'λ', 'φ', 'α', 'β', 'γ', '+', '×', '−', '='];
@@ -115,6 +129,10 @@ let state = {
   comboInterval: null,
   inputValue: '',
   useKeypad: false,
+  overdriveLevel: 0,
+  overdriveTarget: 1000,
+  overdriveMax: 0,
+  overdriveLabel: '',
 };
 
 const app = document.querySelector('#app');
@@ -301,11 +319,27 @@ const GUIDE_SECTIONS = [
       'Bandingkan record per difficulty untuk melihat peningkatan kemampuan Anda.',
     ],
   },
+  {
+    id: 'overdrive',
+    icon: 'bolt',
+    label: 'Overdrive',
+    title: 'Mekanik Mode Overdrive',
+    lead: 'Raih skor tanpa batas di mana soal semakin sulit seiring bertambahnya skor.',
+    highlights: [
+      ['Waktu Bonus (+5s)', 'Mulai dengan 60 detik. Jawaban benar menambah 5 detik (maksimal tabungan waktu 3 menit).'],
+      ['Escalation Level', 'Setiap kelipatan skor 1000, level berevolusi dan range angka pada soal akan membesar.'],
+      ['Difficulty = Multiplier', 'Pilihan Difficulty menentukan multiplier kelipatan kenaikan range soal pada tiap level (Easy 1.5x hingga Master 12x).'],
+    ],
+    tips: [
+      'Semakin tinggi difficulty, semakin ekstrem angka di level tinggi.',
+      'Jaga combo demi meraih milestone 1000 poin lebih cepat.',
+    ],
+  },
 ];
 
 function renderGuideModal() {
   const guideSummary = [
-    ['2 Game Modes', 'Sprint + Race'],
+    ['3 Game Modes', 'Sprint, Race, Overdrive'],
     ['4 Operations', 'Semua level aktif'],
   ].map(([label, value]) => `
     <div class="guide-summary-chip">
@@ -425,7 +459,7 @@ function getHighScore(mode, op, max) {
 }
 
 function getHighCorrect(mode, op, max) {
-  if (mode !== 'sprint') return 0;
+  if (mode !== 'sprint' && mode !== 'overdrive') return 0;
   const value = getStoredNumber(getModeRecordKey(mode, op, max, 'HC'));
   if (value !== null) return value;
   return getStoredNumber(getLegacyRecordKey(op, max, 'HC')) || 0;
@@ -450,7 +484,7 @@ function setHighScore(mode, op, max, val) {
 }
 
 function setHighCorrect(mode, op, max, val) {
-  if (mode !== 'sprint') return;
+  if (mode !== 'sprint' && mode !== 'overdrive') return;
   localStorage.setItem(getModeRecordKey(mode, op, max, 'HC'), String(val));
 }
 
@@ -529,15 +563,20 @@ function getMenuDifficultyCardsMarkup() {
   const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
   const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
 
-  return op.levels.map((lvl, i) => `
-    <div class="diff-card diff-tone-${getDifficultyTone(lvl)} ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
-      <div class="diff-main">
-        <div class="diff-head">
-          <div class="diff-label">${lvl.difficultyName}</div>
-          <div class="diff-side">${lvl.label}</div>
-        </div>
-        <div class="diff-meta">
-          <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} ${hs(lvl)}</span>
+  return op.levels.map((lvl, i) => {
+    const diffLabel = state.gameMode === 'overdrive' 
+      ? `Multiplier: ${OVERDRIVE_MULTIPLIERS[getDifficultyTone(lvl)]}x` 
+      : lvl.label;
+
+    return `
+      <div class="diff-card diff-tone-${getDifficultyTone(lvl)} ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
+        <div class="diff-main">
+          <div class="diff-head">
+            <div class="diff-label">${lvl.difficultyName}</div>
+            <div class="diff-side">${diffLabel}</div>
+          </div>
+          <div class="diff-meta">
+            <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} ${hs(lvl)}</span>
           ${state.gameMode === 'race10'
             ? `<span class="diff-stat time-record">${renderIcon('time', 'mini-icon')} ${formatElapsedMs(hbt(lvl))}</span>`
             : `<span class="diff-stat correct-record">${renderIcon('target', 'mini-icon')} ${hc(lvl)}</span>`}
@@ -545,7 +584,8 @@ function getMenuDifficultyCardsMarkup() {
         </div>
       </div>
     </div>
-  `).join('');
+  `;
+}).join('');
 }
 
 function getPanelModeBadgeMarkup() {
@@ -723,6 +763,26 @@ function renderGame() {
     <div class="game-container game-active">
       <div class="header page-header game-header-top">
         ${renderSessionMeta(state.level, state.gameMode, state.operation, 'session-meta-header')}
+        ${state.gameMode === 'overdrive' ? `
+          <div class="overdrive-hud">
+            <div class="overdrive-hud-item">
+              <span class="overdrive-hud-label">${renderIcon('bolt', 'mini-icon')} Mult</span>
+              <span class="overdrive-hud-val">${OVERDRIVE_MULTIPLIERS[getDifficultyTone(state.level)] || 2}x</span>
+            </div>
+            <div class="overdrive-hud-item">
+              <span class="overdrive-hud-label">${renderIcon('target', 'mini-icon')} Range</span>
+              <span class="overdrive-hud-val" id="over-range">${state.overdriveLabel}</span>
+            </div>
+            <div class="overdrive-hud-item">
+              <span class="overdrive-hud-label">${renderIcon('spark', 'mini-icon')} Level</span>
+              <span class="overdrive-hud-val glow-magenta" id="over-lvl">Lvl ${state.overdriveLevel}</span>
+            </div>
+            <div class="overdrive-hud-item">
+              <span class="overdrive-hud-label">${renderIcon('guide', 'mini-icon')} Next</span>
+              <span class="overdrive-hud-val text-primary" id="over-next">${state.score} / ${state.overdriveTarget}</span>
+            </div>
+          </div>
+        ` : ''}
       </div>
 
       <div class="game-screen glass-panel">
@@ -1015,6 +1075,14 @@ function startGame() {
   state.inputValue = '0';
   state.useKeypad = isTouchDevice();
 
+  if (state.gameMode === 'overdrive') {
+    const baseLevel = OPERATIONS[state.operation].levels[0];
+    state.overdriveMax = baseLevel.max;
+    state.overdriveLevel = 0;
+    state.overdriveTarget = 1000;
+    state.overdriveLabel = baseLevel.label;
+  }
+
   generateProblem();
   scrollViewportToTop();
   render();
@@ -1084,7 +1152,7 @@ function startComboLoop() {
 }
 
 function generateProblem() {
-  const max = state.level.max;
+  const max = state.gameMode === 'overdrive' ? state.overdriveMax : state.level.max;
   const num1 = Math.floor(Math.random() * max) + 1;
   const num2 = Math.floor(Math.random() * max) + 1;
   const formattedNum1 = num1.toLocaleString();
@@ -1164,6 +1232,30 @@ function checkAnswer(userAnswer) {
       syncElapsedMs();
     } else {
       state.correct += 1;
+      if (state.gameMode === 'overdrive') {
+        state.timeLeft = Math.min(180, state.timeLeft + 5);
+        updateTimeUI();
+        
+        const newLevel = Math.floor(state.score / 1000);
+        if (newLevel > state.overdriveLevel) {
+          state.overdriveLevel = newLevel;
+          state.overdriveTarget = (newLevel + 1) * 1000;
+          
+          const diffTone = getDifficultyTone(state.level);
+          const multiplier = OVERDRIVE_MULTIPLIERS[diffTone] || 2;
+          const baseMax = OPERATIONS[state.operation].levels[0].max;
+          
+          let currentMax = baseMax;
+          for (let i = 0; i < newLevel; i++) {
+            currentMax = Math.round(currentMax * multiplier);
+          }
+          state.overdriveMax = currentMax;
+          
+          const fmtStr = currentMax >= 1000000 ? (currentMax/1000000)+'M' : (currentMax >= 1000 ? (currentMax/1000)+'K' : currentMax);
+          const sym = OPERATIONS[state.operation].symbol;
+          state.overdriveLabel = `1–${fmtStr} ${sym} 1–${fmtStr}`;
+        }
+      }
     }
     
     showFeedback('+'+totalAward, 'success');
@@ -1194,6 +1286,15 @@ function updateStatsUI() {
   if (scoreEl) scoreEl.textContent = state.score;
   if (correctEl) correctEl.textContent = state.correct;
   if (progressEl) progressEl.textContent = getProgressLabel();
+  
+  if (state.gameMode === 'overdrive') {
+    const overNextEl = document.getElementById('over-next');
+    const overRangeEl = document.getElementById('over-range');
+    const overLvlEl = document.getElementById('over-lvl');
+    if (overNextEl) overNextEl.textContent = `${state.score} / ${state.overdriveTarget}`;
+    if (overRangeEl) overRangeEl.textContent = state.overdriveLabel;
+    if (overLvlEl) overLvlEl.textContent = `Lvl ${state.overdriveLevel}`;
+  }
 }
 
 function updateComboUI() {
