@@ -4,6 +4,13 @@ import './style.css';
 // Constants & Configuration
 // ============================================
 const DIFFICULTY_NAMES = ['Easy', 'Normal', 'Hard', 'Expert', 'Master'];
+const DIFFICULTY_TONES = {
+  Easy: 'easy',
+  Normal: 'normal',
+  Hard: 'hard',
+  Expert: 'expert',
+  Master: 'master',
+};
 
 const OPERATIONS = {
   addition: {
@@ -162,13 +169,19 @@ function renderLabelIcon(name, text) {
   return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
 }
 
+function getDifficultyTone(level = state.level) {
+  if (!level) return 'easy';
+  return DIFFICULTY_TONES[level.difficultyName] || 'easy';
+}
+
 function renderSessionMeta(level = state.level, gameMode = state.gameMode, operation = state.operation, extraClass = '') {
   const mode = GAME_MODES[gameMode];
   const activeLevel = level || OPERATIONS[operation].levels[state.selectedLevelIdx];
+  const tierTone = getDifficultyTone(activeLevel);
 
   const items = [
     { tone: 'meta-mode', icon: renderModeIcon(gameMode, 'session-meta-icon'), text: mode.label },
-    { tone: 'meta-tier', icon: renderIcon('spark', 'session-meta-icon'), text: activeLevel.difficultyName },
+    { tone: `meta-tier difficulty-tier-${tierTone}`, icon: renderIcon('spark', 'session-meta-icon'), text: activeLevel.difficultyName },
     { tone: 'meta-operation', icon: renderOperationIcon(operation, 'session-meta-icon'), text: activeLevel.label },
   ];
 
@@ -517,7 +530,7 @@ function getMenuDifficultyCardsMarkup() {
   const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
 
   return op.levels.map((lvl, i) => `
-    <div class="diff-card ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
+    <div class="diff-card diff-tone-${getDifficultyTone(lvl)} ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
       <div class="diff-main">
         <div class="diff-head">
           <div class="diff-label">${lvl.difficultyName}</div>
@@ -743,7 +756,7 @@ function renderGame() {
           ${state.useKeypad ? `
             <div class="answer-display focus" id="answer-display">${state.inputValue}<span class="cursor-blink"></span></div>
           ` : `
-            <input type="number" id="answer-input" placeholder="= ?" autocomplete="off" inputmode="decimal" step="any" />
+            <input type="text" id="answer-input" value="${state.inputValue}" autocomplete="off" inputmode="decimal" spellcheck="false" />
           `}
         </div>
 
@@ -751,6 +764,8 @@ function renderGame() {
       </div>
     </div>
   `;
+
+  scrollViewportToTop();
 
   // Event bindings
   document.getElementById('pause-btn').addEventListener('click', pauseGame);
@@ -760,13 +775,19 @@ function renderGame() {
   } else {
     const input = document.getElementById('answer-input');
     if (input) {
+      updateAnswerInput();
       input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+        const handled = handleSharedInputKey(e.key);
+        if (handled) {
           e.preventDefault();
-          checkAnswer(parseFloat(input.value));
-          input.value = '';
+          return;
         }
+      });
+      input.addEventListener('input', () => {
+        state.inputValue = sanitizeInputValue(input.value);
+        updateAnswerInput();
       });
     }
   }
@@ -782,27 +803,15 @@ function handlePhysicalKeyboard(e) {
     document.removeEventListener('keydown', handlePhysicalKeyboard);
     return;
   }
-  if (e.key >= '0' && e.key <= '9') {
-    state.inputValue += e.key;
-    updateAnswerDisplay();
-  } else if ((e.key === '.' || e.key === ',') && state.operation === 'division') {
-    appendDecimalPoint();
-    updateAnswerDisplay();
-  } else if (e.key === 'Backspace') {
-    state.inputValue = state.inputValue.slice(0, -1);
-    updateAnswerDisplay();
-  } else if (e.key === 'Enter') {
-    submitKeypadAnswer();
-  } else if (e.key === '-') {
-    toggleNegative();
-    updateAnswerDisplay();
+  if (handleSharedInputKey(e.key)) {
+    e.preventDefault();
   }
 }
 
 function renderKeypad() {
   const decimalKey = state.operation === 'division'
-    ? '<button class="key-btn key-action" data-key="decimal">.</button>'
-    : '<button class="key-btn key-action" data-key="00">00</button>';
+    ? '<button class="key-btn key-action" data-key="decimal">,</button>'
+    : '<button class="key-btn key-action key-disabled" data-key="decimal" disabled>,</button>';
 
   return `
     <div class="keypad-container">
@@ -818,9 +827,9 @@ function renderKeypad() {
         <button class="key-btn" data-key="1">1</button>
         <button class="key-btn" data-key="2">2</button>
         <button class="key-btn" data-key="3">3</button>
+        ${decimalKey}
         <button class="key-btn key-action" data-key="neg">+/-</button>
         <button class="key-btn" data-key="0">0</button>
-        ${decimalKey}
         <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">Submit</button>
       </div>
     </div>
@@ -834,15 +843,13 @@ function bindKeypad() {
       const key = btn.dataset.key;
 
       if (key >= '0' && key <= '9') {
-        state.inputValue += key;
-      } else if (key === '00') {
-        state.inputValue += '00';
+        appendInputDigit(key);
       } else if (key === 'decimal') {
         appendDecimalPoint();
       } else if (key === 'del') {
-        state.inputValue = state.inputValue.slice(0, -1);
+        deleteInputChar();
       } else if (key === 'clear') {
-        state.inputValue = '';
+        resetInputValue();
       } else if (key === 'neg') {
         toggleNegative();
       } else if (key === 'submit') {
@@ -855,23 +862,91 @@ function bindKeypad() {
   });
 }
 
+function scrollViewportToTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function normalizeForParse(value) {
+  return String(value ?? '').replace(/,/g, '.');
+}
+
+function sanitizeInputValue(value) {
+  const raw = String(value ?? '').trim().replace(/\./g, ',');
+  let negative = false;
+  let decimalUsed = false;
+  let result = '';
+
+  for (const char of raw) {
+    if (char >= '0' && char <= '9') {
+      result += char;
+    } else if (char === '-' && !negative && result.length === 0) {
+      negative = true;
+    } else if (char === ',' && state.operation === 'division' && !decimalUsed) {
+      decimalUsed = true;
+      result += result.length === 0 ? '0,' : ',';
+    }
+  }
+
+  if (result === '') {
+    return negative ? '-0' : '0';
+  }
+
+  if (result.startsWith('0') && !result.startsWith('0,')) {
+    result = result.replace(/^0+(?=\d)/, '') || '0';
+  }
+
+  return negative ? `-${result}` : result;
+}
+
+function appendInputDigit(digit) {
+  if (digit < '0' || digit > '9') return;
+  if (state.inputValue === '0') {
+    if (digit === '0') return;
+    state.inputValue = digit;
+    return;
+  }
+  if (state.inputValue === '-0') {
+    if (digit === '0') return;
+    state.inputValue = `-${digit}`;
+    return;
+  }
+  state.inputValue += digit;
+}
+
+function deleteInputChar() {
+  if (state.inputValue === '0' || state.inputValue === '-0') {
+    state.inputValue = '0';
+    return;
+  }
+  state.inputValue = state.inputValue.slice(0, -1);
+  if (state.inputValue === '' || state.inputValue === '-') {
+    state.inputValue = '0';
+  }
+}
+
+function resetInputValue() {
+  state.inputValue = '0';
+  updateAnswerDisplay();
+  updateAnswerInput();
+}
+
 function toggleNegative() {
   if (state.inputValue.startsWith('-')) {
     state.inputValue = state.inputValue.substring(1);
-  } else if (state.inputValue.length > 0) {
-    state.inputValue = '-' + state.inputValue;
   } else {
-    state.inputValue = '-';
+    state.inputValue = `-${state.inputValue}`;
   }
 }
 
 function appendDecimalPoint() {
-  if (state.operation !== 'division' || state.inputValue.includes('.')) return;
-  if (state.inputValue === '' || state.inputValue === '-') {
-    state.inputValue += '0.';
+  if (state.operation !== 'division' || state.inputValue.includes(',')) return;
+  if (state.inputValue === '0' || state.inputValue === '-0') {
+    state.inputValue += ',';
     return;
   }
-  state.inputValue += '.';
+  state.inputValue += ',';
 }
 
 function updateAnswerDisplay() {
@@ -881,13 +956,45 @@ function updateAnswerDisplay() {
   }
 }
 
+function updateAnswerInput() {
+  const input = document.getElementById('answer-input');
+  if (input) {
+    input.value = state.inputValue;
+    if (document.activeElement === input) {
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+function handleSharedInputKey(key) {
+  if (key >= '0' && key <= '9') {
+    appendInputDigit(key);
+  } else if (key === '.' || key === ',') {
+    appendDecimalPoint();
+  } else if (key === 'Backspace') {
+    deleteInputChar();
+  } else if (key === 'Delete') {
+    resetInputValue();
+  } else if (key === 'Enter') {
+    submitKeypadAnswer();
+    return true;
+  } else if (key === '-') {
+    toggleNegative();
+  } else {
+    return false;
+  }
+
+  updateAnswerDisplay();
+  updateAnswerInput();
+  return true;
+}
+
 function submitKeypadAnswer() {
-  const val = parseFloat(state.inputValue);
+  const val = parseFloat(normalizeForParse(state.inputValue));
   if (!isNaN(val)) {
     checkAnswer(val);
   }
-  state.inputValue = '';
-  updateAnswerDisplay();
+  resetInputValue();
 }
 
 // ============================================
@@ -905,10 +1012,11 @@ function startGame() {
   state.timeLeft = GAME_DURATION;
   state.elapsedMs = 0;
   state.timerStartedAt = 0;
-  state.inputValue = '';
+  state.inputValue = '0';
   state.useKeypad = isTouchDevice();
 
   generateProblem();
+  scrollViewportToTop();
   render();
   animateProblem();
   updateStatsUI();
@@ -1025,12 +1133,12 @@ function fitProblemText(el) {
   const container = el.parentElement;
   if (!container) return;
   const maxW = container.clientWidth - 8;
-  const baseSizes = [3.55, 3.1, 2.7, 2.25, 1.8, 1.35];
+  const baseSizes = [3.75, 3.3, 2.9, 2.4, 1.95, 1.45];
   for (const size of baseSizes) {
     el.style.fontSize = size + 'rem';
     if (el.scrollWidth <= maxW) return;
   }
-  el.style.fontSize = '1.35rem';
+  el.style.fontSize = '1.45rem';
 }
 
 function checkAnswer(userAnswer) {
@@ -1200,6 +1308,7 @@ function resumeGame() {
   if (overlay) overlay.remove();
 
   state.screen = 'playing';
+  scrollViewportToTop();
   startTimerLoop();
   startComboLoop();
   updateTimeUI();
