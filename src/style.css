@@ -457,17 +457,15 @@ body::after {
 
 /* Mode Switch */
 .mode-switch {
-  display: flex;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.55rem;
   padding: 0.45rem;
   background: rgba(6, 10, 22, 0.72);
   border: 1px solid var(--glass-border);
   border-radius: calc(var(--radius-md) + 2px);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  justify-content: flex-end;
+  width: 100%;
+  overflow: hidden;
 }
 
 .mode-switch::-webkit-scrollbar {
@@ -480,23 +478,15 @@ body::after {
   background: transparent;
   color: var(--text-muted);
   border-radius: 14px;
-  padding: 0.8rem 0.9rem;
+  padding: 0.6rem 0.3rem;
   display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: center;
   text-align: left;
   cursor: pointer;
   transition: all 0.25s ease;
   font-family: var(--font-display);
-  min-width: 152px;
-  flex: 0 0 auto;
-  min-height: 64px;
-  justify-content: flex-start;
-}
-
-.mode-tab:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-main);
 }
 
 .mode-tab.is-active {
@@ -1462,7 +1452,7 @@ body::after {
   gap: 0.4rem 0.6rem;
   justify-content: center;
   align-items: center;
-  margin-top: -0.4rem;
+  margin-top: 0.25rem;
   margin-bottom: 0.8rem;
 }
 

@@ -200,8 +200,13 @@ function renderSessionMeta(level = state.level, gameMode = state.gameMode, opera
   const items = [
     { tone: 'meta-mode', icon: renderModeIcon(gameMode, 'session-meta-icon'), text: mode.label },
     { tone: `meta-tier difficulty-tier-${tierTone}`, icon: renderIcon('spark', 'session-meta-icon'), text: activeLevel.difficultyName },
-    { tone: 'meta-operation', icon: renderOperationIcon(operation, 'session-meta-icon'), text: activeLevel.label },
   ];
+
+  if (gameMode === 'overdrive') {
+    items.push({ tone: 'meta-operation', icon: renderIcon('bolt', 'session-meta-icon'), text: `Mult ${OVERDRIVE_MULTIPLIERS[tierTone] || 2}x` });
+  } else {
+    items.push({ tone: 'meta-operation', icon: renderOperationIcon(operation, 'session-meta-icon'), text: activeLevel.label });
+  }
 
   return `
     <div class="session-meta ${extraClass}">
@@ -765,10 +770,6 @@ function renderGame() {
         ${renderSessionMeta(state.level, state.gameMode, state.operation, 'session-meta-header')}
         ${state.gameMode === 'overdrive' ? `
           <div class="overdrive-hud">
-            <div class="overdrive-hud-item">
-              <span class="overdrive-hud-label">${renderIcon('bolt', 'mini-icon')} Mult</span>
-              <span class="overdrive-hud-val">${OVERDRIVE_MULTIPLIERS[getDifficultyTone(state.level)] || 2}x</span>
-            </div>
             <div class="overdrive-hud-item">
               <span class="overdrive-hud-label">${renderIcon('target', 'mini-icon')} Range</span>
               <span class="overdrive-hud-val" id="over-range">${state.overdriveLabel}</span>
