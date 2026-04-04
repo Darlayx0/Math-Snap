@@ -489,6 +489,8 @@ body::after {
   font-family: var(--font-display);
   min-width: 152px;
   flex: 0 0 auto;
+  min-height: 64px;
+  justify-content: flex-start;
 }
 
 .mode-tab:hover {
@@ -768,12 +770,13 @@ body::after {
 }
 
 .diff-card .diff-label {
-  font-weight: 600;
-  font-size: 0.95rem;
-  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.92rem;
+  font-family: var(--font-display);
   color: var(--text-main);
   min-width: 0;
   white-space: nowrap;
+  letter-spacing: 0.4px;
 }
 
 .diff-meta {
@@ -829,31 +832,19 @@ body::after {
 }
 
 .diff-side {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-shrink: 0;
-}
-
-.diff-rank {
   display: inline-flex;
   align-items: center;
-  gap: 0.32rem;
-}
-
-.rank-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-}
-
-.rank-dot.active {
-  background: linear-gradient(135deg, rgba(255, 209, 102, 0.95), rgba(255, 154, 60, 0.95));
-  border-color: rgba(255, 198, 88, 0.75);
-  box-shadow: 0 0 12px rgba(255, 187, 64, 0.25);
+  justify-content: flex-end;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 62%;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .screen-actions,
@@ -1339,13 +1330,64 @@ body::after {
 
 .game-active .game-header-top {
   display: block;
-  padding: 0.1rem 0 0.15rem;
+  padding: 0.05rem 0 0.45rem;
 }
 
-.game-header-top h1 {
-  font-size: 1.12rem;
-  margin-bottom: 0;
-  letter-spacing: -0.2px;
+.session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.session-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.52rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(13, 20, 39, 0.88), rgba(9, 14, 27, 0.78));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.session-meta-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.session-meta-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+  flex-shrink: 0;
+}
+
+.session-meta-chip.meta-mode {
+  color: var(--neon-cyan);
+  border-color: rgba(0, 240, 255, 0.2);
+}
+
+.session-meta-chip.meta-tier {
+  color: #ffd36b;
+  border-color: rgba(255, 184, 0, 0.2);
+}
+
+.session-meta-chip.meta-operation {
+  color: #f1f5ff;
+  border-color: rgba(255, 255, 255, 0.1);
+  max-width: min(100%, 350px);
+}
+
+.session-meta-end {
+  margin: -0.15rem 0 0.85rem;
 }
 
 /* â€”â€”â€” HUD Strip â€”â€”â€” */
@@ -1517,17 +1559,6 @@ body::after {
   color: var(--neon-cyan);
 }
 
-.game-mode-label {
-  font-size: 0.75rem;
-  color: var(--text-dim);
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 /* Timer warning */
 .hud-cell .hud-val.time-warn,
 .hud-cell.time-warn .hud-val {
@@ -1560,7 +1591,7 @@ body::after {
 }
 
 .problem-text {
-  font-size: 3.3rem;
+  font-size: 3.55rem;
   font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: 3px;
@@ -2156,11 +2187,13 @@ body::after {
   .answer-display, #answer-input { font-size: 1.65rem; padding: 0.65rem; }
   .key-btn { padding: 0.72rem; font-size: 1.2rem; }
   .mode-switch { padding: 0.35rem; gap: 0.45rem; }
-  .mode-tab { min-width: 142px; padding: 0.68rem 0.75rem; gap: 0.5rem; }
+  .mode-tab { min-width: 156px; flex: 0 0 156px; padding: 0.72rem 0.78rem; gap: 0.55rem; align-items: center; }
   .mode-tab-icon { width: 1.8rem; height: 1.8rem; border-radius: 10px; }
+  .mode-tab-copy { justify-content: center; }
   .mode-tab-label { font-size: 0.78rem; white-space: nowrap; }
   .diff-card { align-items: stretch; }
   .diff-head { gap: 0.65rem; }
+  .diff-side { max-width: 58%; font-size: 0.68rem; }
   .menu-left-bottom { flex-direction: column; align-items: stretch; }
   .danger-link, .utility-link { justify-content: center; width: 100%; }
   .panel-right-header { display: none; }
@@ -2172,7 +2205,10 @@ body::after {
   .combo-val { font-size: 0.62rem; }
   .pause-btn { width: 34px; height: 34px; border-radius: 8px; }
   .game-screen { padding: 0.85rem 1rem 1.25rem !important; }
-  .game-header-top h1 { font-size: 0.98rem; }
+  .session-meta { gap: 0.42rem; }
+  .session-meta-chip { padding: 0.46rem 0.68rem; max-width: 100%; }
+  .session-meta-text { font-size: 0.62rem; letter-spacing: 0.85px; }
+  .session-meta-chip.meta-operation { max-width: 100%; }
   .diff-meta { gap: 0.32rem; }
   .diff-stat { padding: 0.24rem 0.45rem; font-size: 0.64rem; }
   .op-chip { padding: 0.65rem 0.3rem 0.55rem; }

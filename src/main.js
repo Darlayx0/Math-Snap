@@ -3,6 +3,8 @@ import './style.css';
 // ============================================
 // Constants & Configuration
 // ============================================
+const DIFFICULTY_NAMES = ['Easy', 'Normal', 'Hard', 'Expert', 'Master'];
+
 const OPERATIONS = {
   addition: {
     label: 'Addition',
@@ -10,11 +12,11 @@ const OPERATIONS = {
     icon: 'plus',
     desc: 'Test your adding speed',
     levels: [
-      { max: 100, label: '1–100 + 1–100', stars: '★' },
-      { max: 1000, label: '1–1K + 1–1K', stars: '★★' },
-      { max: 10000, label: '1–10K + 1–10K', stars: '★★★' },
-      { max: 100000, label: '1–100K + 1–100K', stars: '★★★★' },
-      { max: 1000000, label: '1–1M + 1–1M', stars: '★★★★★' },
+      { max: 100, label: '1–100 + 1–100', difficultyName: DIFFICULTY_NAMES[0] },
+      { max: 1000, label: '1–1K + 1–1K', difficultyName: DIFFICULTY_NAMES[1] },
+      { max: 10000, label: '1–10K + 1–10K', difficultyName: DIFFICULTY_NAMES[2] },
+      { max: 100000, label: '1–100K + 1–100K', difficultyName: DIFFICULTY_NAMES[3] },
+      { max: 1000000, label: '1–1M + 1–1M', difficultyName: DIFFICULTY_NAMES[4] },
     ],
   },
   subtraction: {
@@ -23,11 +25,11 @@ const OPERATIONS = {
     icon: 'minus',
     desc: 'Sharpen your subtraction speed',
     levels: [
-      { max: 100, label: '1–100 - 1–100', stars: '★' },
-      { max: 1000, label: '1–1K - 1–1K', stars: '★★' },
-      { max: 10000, label: '1–10K - 1–10K', stars: '★★★' },
-      { max: 100000, label: '1–100K - 1–100K', stars: '★★★★' },
-      { max: 1000000, label: '1–1M - 1–1M', stars: '★★★★★' },
+      { max: 100, label: '1–100 - 1–100', difficultyName: DIFFICULTY_NAMES[0] },
+      { max: 1000, label: '1–1K - 1–1K', difficultyName: DIFFICULTY_NAMES[1] },
+      { max: 10000, label: '1–10K - 1–10K', difficultyName: DIFFICULTY_NAMES[2] },
+      { max: 100000, label: '1–100K - 1–100K', difficultyName: DIFFICULTY_NAMES[3] },
+      { max: 1000000, label: '1–1M - 1–1M', difficultyName: DIFFICULTY_NAMES[4] },
     ],
   },
   multiplication: {
@@ -36,11 +38,11 @@ const OPERATIONS = {
     icon: 'multiply',
     desc: 'Master your times tables',
     levels: [
-      { max: 10, label: '1–10 × 1–10', stars: '★' },
-      { max: 30, label: '1–30 × 1–30', stars: '★★' },
-      { max: 100, label: '1–100 × 1–100', stars: '★★★' },
-      { max: 1000, label: '1–1K × 1–1K', stars: '★★★★' },
-      { max: 10000, label: '1–10K × 1–10K', stars: '★★★★★' },
+      { max: 10, label: '1–10 × 1–10', difficultyName: DIFFICULTY_NAMES[0] },
+      { max: 30, label: '1–30 × 1–30', difficultyName: DIFFICULTY_NAMES[1] },
+      { max: 100, label: '1–100 × 1–100', difficultyName: DIFFICULTY_NAMES[2] },
+      { max: 300, label: '1–300 × 1–300', difficultyName: DIFFICULTY_NAMES[3] },
+      { max: 1000, label: '1–1K × 1–1K', difficultyName: DIFFICULTY_NAMES[4] },
     ],
   },
   division: {
@@ -49,11 +51,11 @@ const OPERATIONS = {
     icon: 'divide',
     desc: 'Practice fast decimal division',
     levels: [
-      { max: 10, label: '1–10 ÷ 1–10', stars: '★' },
-      { max: 30, label: '1–30 ÷ 1–30', stars: '★★' },
-      { max: 100, label: '1–100 ÷ 1–100', stars: '★★★' },
-      { max: 1000, label: '1–1K ÷ 1–1K', stars: '★★★★' },
-      { max: 10000, label: '1–10K ÷ 1–10K', stars: '★★★★★' },
+      { max: 10, label: '1–10 ÷ 1–10', difficultyName: DIFFICULTY_NAMES[0] },
+      { max: 30, label: '1–30 ÷ 1–30', difficultyName: DIFFICULTY_NAMES[1] },
+      { max: 100, label: '1–100 ÷ 1–100', difficultyName: DIFFICULTY_NAMES[2] },
+      { max: 300, label: '1–300 ÷ 1–300', difficultyName: DIFFICULTY_NAMES[3] },
+      { max: 1000, label: '1–1K ÷ 1–1K', difficultyName: DIFFICULTY_NAMES[4] },
     ],
   },
 };
@@ -156,14 +158,30 @@ function renderModeIcon(name, className = '') {
   return renderIcon(GAME_MODES[name]?.icon || 'spark', className);
 }
 
-function renderRankDots(rank) {
-  return `<div class="diff-rank" aria-label="Difficulty ${rank}">${Array.from({ length: 5 }, (_, index) => `
-    <span class="rank-dot ${index < rank ? 'active' : ''}"></span>
-  `).join('')}</div>`;
-}
-
 function renderLabelIcon(name, text) {
   return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
+}
+
+function renderSessionMeta(level = state.level, gameMode = state.gameMode, operation = state.operation, extraClass = '') {
+  const mode = GAME_MODES[gameMode];
+  const activeLevel = level || OPERATIONS[operation].levels[state.selectedLevelIdx];
+
+  const items = [
+    { tone: 'meta-mode', icon: renderModeIcon(gameMode, 'session-meta-icon'), text: mode.label },
+    { tone: 'meta-tier', icon: renderIcon('spark', 'session-meta-icon'), text: activeLevel.difficultyName },
+    { tone: 'meta-operation', icon: renderOperationIcon(operation, 'session-meta-icon'), text: activeLevel.label },
+  ];
+
+  return `
+    <div class="session-meta ${extraClass}">
+      ${items.map((item) => `
+        <span class="session-meta-chip ${item.tone}">
+          ${item.icon}
+          <span class="session-meta-text">${item.text}</span>
+        </span>
+      `).join('')}
+    </div>
+  `;
 }
 
 function renderHudStat(icon, id, value, tone, title) {
@@ -502,8 +520,8 @@ function getMenuDifficultyCardsMarkup() {
     <div class="diff-card ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
       <div class="diff-main">
         <div class="diff-head">
-          <div class="diff-label">${lvl.label}</div>
-          <div class="diff-side">${renderRankDots(lvl.stars.length)}</div>
+          <div class="diff-label">${lvl.difficultyName}</div>
+          <div class="diff-side">${lvl.label}</div>
         </div>
         <div class="diff-meta">
           <span class="diff-stat score-record">${renderIcon('trophy', 'mini-icon')} ${hs(lvl)}</span>
@@ -691,7 +709,7 @@ function renderGame() {
   app.innerHTML = `
     <div class="game-container game-active">
       <div class="header page-header game-header-top">
-        <h1>${state.level.label}</h1>
+        ${renderSessionMeta(state.level, state.gameMode, state.operation, 'session-meta-header')}
       </div>
 
       <div class="game-screen glass-panel">
@@ -1007,12 +1025,12 @@ function fitProblemText(el) {
   const container = el.parentElement;
   if (!container) return;
   const maxW = container.clientWidth - 8;
-  const baseSizes = [3.3, 2.8, 2.3, 1.9, 1.5, 1.2];
+  const baseSizes = [3.55, 3.1, 2.7, 2.25, 1.8, 1.35];
   for (const size of baseSizes) {
     el.style.fontSize = size + 'rem';
     if (el.scrollWidth <= maxW) return;
   }
-  el.style.fontSize = '1.2rem';
+  el.style.fontSize = '1.35rem';
 }
 
 function checkAnswer(userAnswer) {
@@ -1255,7 +1273,6 @@ function endGame() {
 }
 
 function renderEnd(records = {}) {
-  const op = OPERATIONS[state.operation];
   const mode = GAME_MODES[state.gameMode];
   const isRace = isRaceMode();
 
@@ -1275,7 +1292,7 @@ function renderEnd(records = {}) {
       </div>
 
       <div class="end-screen glass-panel">
-        <div class="game-mode-label" style="margin:-0.5rem 0">${renderModeIcon(state.gameMode, 'inline-icon')} ${mode.label} • ${renderOperationIcon(state.operation, 'inline-icon')} ${state.level.label}</div>
+        ${renderSessionMeta(state.level, state.gameMode, state.operation, 'session-meta-end')}
 
         ${hasAnyRecord ? `<div class="new-record">${renderIcon('spark', 'inline-icon')} New Record!</div>` : ''}
 
