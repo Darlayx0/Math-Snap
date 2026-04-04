@@ -20,6 +20,82 @@ const OVERDRIVE_MULTIPLIERS = {
   master: 12,
 };
 
+const PATTERN_RUSH_MODE = 'patternrush';
+const PATTERN_RUSH_RECORD_OP = 'patternrush';
+const PATTERN_RUSH_COMBO_DURATION = 12;
+const PATTERN_RUSH_DURATION = 90;
+const PATTERN_RUSH_MAX_ATTEMPTS = 100;
+const PATTERN_RUSH_DISPLAY_LENGTH_CAP = 34;
+const PATTERN_FAMILY_PRECEDENCE = [
+  'arithmetic',
+  'geometric',
+  'alternating',
+  'second-difference',
+  'position-based',
+  'recursive-light',
+];
+
+const PATTERN_RUSH_DIFFICULTIES = [
+  {
+    max: 99,
+    label: 'Arithmetic',
+    difficultyName: DIFFICULTY_NAMES[0],
+    sequenceLengths: [4],
+    familyWeights: { arithmetic: 100 },
+    arithmeticStepRange: [2, 8],
+    geometricRatioRange: [2, 3],
+  },
+  {
+    max: 300,
+    label: 'Arithmetic + Geometric',
+    difficultyName: DIFFICULTY_NAMES[1],
+    sequenceLengths: [4],
+    familyWeights: { arithmetic: 65, geometric: 35 },
+    arithmeticStepRange: [3, 15],
+    geometricRatioRange: [2, 3],
+  },
+  {
+    max: 900,
+    label: '+ Alternating',
+    difficultyName: DIFFICULTY_NAMES[2],
+    sequenceLengths: [5],
+    familyWeights: { arithmetic: 30, geometric: 30, alternating: 40 },
+    arithmeticStepRange: [5, 25],
+    geometricRatioRange: [2, 4],
+  },
+  {
+    max: 2500,
+    label: '+ 2nd Diff + Odd/Even',
+    difficultyName: DIFFICULTY_NAMES[3],
+    sequenceLengths: [5],
+    familyWeights: {
+      arithmetic: 15,
+      geometric: 20,
+      alternating: 30,
+      'second-difference': 20,
+      'position-based': 15,
+    },
+    arithmeticStepRange: [7, 40],
+    geometricRatioRange: [2, 4],
+  },
+  {
+    max: 9999,
+    label: 'All Families',
+    difficultyName: DIFFICULTY_NAMES[4],
+    sequenceLengths: [5, 6],
+    familyWeights: {
+      arithmetic: 10,
+      geometric: 15,
+      alternating: 25,
+      'second-difference': 20,
+      'position-based': 15,
+      'recursive-light': 15,
+    },
+    arithmeticStepRange: [10, 60],
+    geometricRatioRange: [2, 5],
+  },
+];
+
 const OPERATIONS = {
   addition: {
     label: 'Addition',
@@ -94,6 +170,12 @@ const GAME_MODES = {
     menuDesc: 'Mulai 60s, +5s per benar, cap 3 menit. Soal berevolusi tiap kelipatan skor 1000.',
     resultTitle: 'Overdrive Complete!',
   },
+  [PATTERN_RUSH_MODE]: {
+    label: 'Pattern Rush',
+    icon: 'chart',
+    menuDesc: 'Baca pola angka, tebak angka berikutnya, dan jaga combo 12 detik secepat mungkin.',
+    resultTitle: 'Pattern Rush Complete!',
+  },
 };
 
 const MATH_SYMBOLS = ['Σ', 'π', '√', '∫', '∞', 'Δ', '÷', '±', '≈', '≠', '%', '∂', 'θ', 'λ', 'φ', 'α', 'β', 'γ', '+', '×', '−', '='];
@@ -103,6 +185,7 @@ const WRONG_PENALTY = 100;
 const RACE_TARGET = 10;
 const COMBO_RING_RADIUS = 16;
 const COMBO_RING_CIRCUMFERENCE = 2 * Math.PI * COMBO_RING_RADIUS;
+const DEFAULT_COMBO_DURATION = 10;
 
 // ============================================
 // Game State
@@ -125,9 +208,10 @@ let state = {
   timerStartedAt: 0,
   currentAnswer: 0,
   currentProblem: '',
+  currentPuzzleData: null,
   timerInterval: null,
   comboInterval: null,
-  inputValue: '',
+  inputValue: '0',
   useKeypad: false,
   overdriveLevel: 0,
   overdriveTarget: 1000,
@@ -192,9 +276,41 @@ function getDifficultyTone(level = state.level) {
   return DIFFICULTY_TONES[level.difficultyName] || 'easy';
 }
 
+function isPatternRushMode(mode = state.gameMode) {
+  return mode === PATTERN_RUSH_MODE;
+}
+
+function getActiveDifficultyLevels(gameMode = state.gameMode, operation = state.operation) {
+  if (isPatternRushMode(gameMode)) {
+    return PATTERN_RUSH_DIFFICULTIES;
+  }
+  return OPERATIONS[operation].levels;
+}
+
+function getSelectedDifficultyLevel(gameMode = state.gameMode, operation = state.operation) {
+  const levels = getActiveDifficultyLevels(gameMode, operation);
+  return levels[Math.min(state.selectedLevelIdx, levels.length - 1)] || levels[0] || null;
+}
+
+function getRecordOperation(mode = state.gameMode, operation = state.operation) {
+  return isPatternRushMode(mode) ? PATTERN_RUSH_RECORD_OP : operation;
+}
+
+function getComboDuration(mode = state.gameMode) {
+  return isPatternRushMode(mode) ? PATTERN_RUSH_COMBO_DURATION : DEFAULT_COMBO_DURATION;
+}
+
+function getGameDuration(mode = state.gameMode) {
+  return isPatternRushMode(mode) ? PATTERN_RUSH_DURATION : GAME_DURATION;
+}
+
+function isPatternRushInputIntegerOnly(mode = state.gameMode) {
+  return isPatternRushMode(mode);
+}
+
 function renderSessionMeta(level = state.level, gameMode = state.gameMode, operation = state.operation, extraClass = '') {
   const mode = GAME_MODES[gameMode];
-  const activeLevel = level || OPERATIONS[operation].levels[state.selectedLevelIdx];
+  const activeLevel = level || getSelectedDifficultyLevel(gameMode, operation);
   const tierTone = getDifficultyTone(activeLevel);
 
   const items = [
@@ -204,6 +320,8 @@ function renderSessionMeta(level = state.level, gameMode = state.gameMode, opera
 
   if (gameMode === 'overdrive') {
     items.push({ tone: 'meta-operation', icon: renderIcon('bolt', 'session-meta-icon'), text: `Mult ${OVERDRIVE_MULTIPLIERS[tierTone] || 2}x` });
+  } else if (gameMode === PATTERN_RUSH_MODE) {
+    items.push({ tone: 'meta-operation', icon: renderIcon('answer', 'session-meta-icon'), text: 'Next Number' });
   } else {
     items.push({ tone: 'meta-operation', icon: renderOperationIcon(operation, 'session-meta-icon'), text: activeLevel.label });
   }
@@ -253,11 +371,11 @@ const GUIDE_SECTIONS = [
     highlights: [
       [GAME_MODES.sprint.label, 'Mode arcade klasik dengan target skor tertinggi dalam countdown 60 detik.'],
       [GAME_MODES.race10.label, `Mode clear challenge untuk menuntaskan ${RACE_TARGET} soal benar secepat mungkin.`],
-      ['Pilih operasi dan difficulty', 'Semua 4 operasi dan seluruh level difficulty tersedia di kedua mode.'],
+      [GAME_MODES[PATTERN_RUSH_MODE].label, 'Mode sequence-reading untuk menebak angka berikutnya dari deret pola yang dibuat procedural.'],
     ],
     tips: [
       'Mulai dari difficulty yang nyaman lalu naik bertahap.',
-      'Gunakan Sprint untuk mengejar skor, lalu Race 10 untuk melatih akurasi dan kecepatan clear.',
+      'Gunakan Sprint untuk skor, Race 10 untuk clear speed, Overdrive untuk escalation brutal, dan Pattern Rush untuk pattern recognition cepat.',
     ],
   },
   {
@@ -289,7 +407,7 @@ const GUIDE_SECTIONS = [
     ],
     tips: [
       'Perhatikan ring combo, bukan hanya angka skor.',
-      'Kecepatan stabil lebih kuat daripada buru-buru lalu sering salah.',
+      'Di Pattern Rush, bonus combo maksimum adalah +12 dan turun 1 poin setiap detik.',
     ],
   },
   {
@@ -301,7 +419,7 @@ const GUIDE_SECTIONS = [
     highlights: [
       ['Desktop', 'Gunakan keyboard lalu tekan Enter untuk submit jawaban.'],
       ['Mobile', 'Gunakan keypad bawaan game yang sudah disesuaikan untuk angka, negatif, dan desimal saat division.'],
-      ['Pause', 'Tombol pause dapat dipakai untuk jeda, restart, atau kembali ke menu.'],
+      ['Pattern Rush', 'Input khusus integer non-negatif; tombol negatif dan desimal tidak dipakai di mode ini.'],
     ],
     tips: [
       'Mode division menerima jawaban desimal.',
@@ -317,11 +435,27 @@ const GUIDE_SECTIONS = [
     highlights: [
       ['Sprint records', 'Menyimpan Best Score, Most Correct, dan High Combo untuk tiap operation + difficulty.'],
       ['Race 10 records', 'Menyimpan Best Score, Best Time, dan High Combo secara terpisah dari mode Sprint.'],
-      ['Best Time', 'Waktu clear tercepat di Race 10; semakin kecil angkanya, semakin baik record Anda.'],
+      ['Pattern Rush records', 'Menyimpan Best Score, Most Correct, dan High Combo per difficulty tanpa memakai operation klasik.'],
     ],
     tips: [
-      'Gunakan reset progress hanya jika benar-benar ingin menghapus semua catatan Sprint dan Race 10.',
+      'Gunakan reset progress hanya jika benar-benar ingin menghapus semua catatan Sprint, Race 10, Overdrive, dan Pattern Rush.',
       'Bandingkan record per difficulty untuk melihat peningkatan kemampuan Anda.',
+    ],
+  },
+  {
+    id: 'patternrush',
+    icon: 'chart',
+    label: 'Pattern Rush',
+    title: 'Mekanik Mode Pattern Rush',
+    lead: 'Baca deret angka, pahami family polanya, lalu masukkan angka berikutnya secara manual secepat mungkin.',
+    highlights: [
+      ['90 detik tetap', 'Pattern Rush selalu dimainkan dengan timer global 90 detik tanpa bonus atau penalti waktu.'],
+      ['Rule engine procedural', 'Sequence dibuat dari family arithmetic, geometric, alternating, second-difference, odd/even, dan Fibonacci-like ringan.'],
+      ['Combo 12 detik', 'Jawaban benar memberi base score +100. Jika combo aktif, bonus tambahan berasal dari sisa timer combo hingga maksimum +12.'],
+    ],
+    tips: [
+      'Saat salah, soal tetap sama. Gunakan kesempatan itu untuk membaca ulang pola dengan cepat.',
+      'Difficulty tinggi membuka family lebih banyak, sequence lebih panjang, dan angka yang jauh lebih besar.',
     ],
   },
   {
@@ -344,8 +478,8 @@ const GUIDE_SECTIONS = [
 
 function renderGuideModal() {
   const guideSummary = [
-    ['3 Game Modes', 'Sprint, Race, Overdrive'],
-    ['4 Operations', 'Semua level aktif'],
+    ['4 Game Modes', 'Sprint, Race, Overdrive, Pattern'],
+    ['Pattern Engine', 'Procedural + validated'],
   ].map(([label, value]) => `
     <div class="guide-summary-chip">
       <span class="guide-summary-value">${label}</span>
@@ -464,7 +598,7 @@ function getHighScore(mode, op, max) {
 }
 
 function getHighCorrect(mode, op, max) {
-  if (mode !== 'sprint' && mode !== 'overdrive') return 0;
+  if (mode !== 'sprint' && mode !== 'overdrive' && mode !== PATTERN_RUSH_MODE) return 0;
   const value = getStoredNumber(getModeRecordKey(mode, op, max, 'HC'));
   if (value !== null) return value;
   return getStoredNumber(getLegacyRecordKey(op, max, 'HC')) || 0;
@@ -489,7 +623,7 @@ function setHighScore(mode, op, max, val) {
 }
 
 function setHighCorrect(mode, op, max, val) {
-  if (mode !== 'sprint' && mode !== 'overdrive') return;
+  if (mode !== 'sprint' && mode !== 'overdrive' && mode !== PATTERN_RUSH_MODE) return;
   localStorage.setItem(getModeRecordKey(mode, op, max, 'HC'), String(val));
 }
 
@@ -561,14 +695,50 @@ function getMenuOperationCardsMarkup() {
   `).join('');
 }
 
-function getMenuDifficultyCardsMarkup() {
-  const op = OPERATIONS[state.operation];
-  const hs = (lvl) => getHighScore(state.gameMode, state.operation, lvl.max);
-  const hc = (lvl) => getHighCorrect(state.gameMode, state.operation, lvl.max);
-  const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
-  const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
+function getPatternRushInfoPanelMarkup() {
+  return `
+    <div class="mode-info-panel">
+      <div class="mode-info-card">
+        <span class="mode-info-icon">${renderIcon('time', 'mini-icon')}</span>
+        <div class="mode-info-copy">
+          <span class="mode-info-label">90s Fixed</span>
+          <span class="mode-info-value">No bonus or penalty time</span>
+        </div>
+      </div>
+      <div class="mode-info-card">
+        <span class="mode-info-icon">${renderIcon('answer', 'mini-icon')}</span>
+        <div class="mode-info-copy">
+          <span class="mode-info-label">Manual Input</span>
+          <span class="mode-info-value">Integer only, same puzzle stays on wrong</span>
+        </div>
+      </div>
+      <div class="mode-info-card">
+        <span class="mode-info-icon">${renderIcon('chart', 'mini-icon')}</span>
+        <div class="mode-info-copy">
+          <span class="mode-info-label">Rule Engine</span>
+          <span class="mode-info-value">Procedural families with ambiguity checks</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-  return op.levels.map((lvl, i) => {
+function getMenuModeSpecificMarkup() {
+  if (isPatternRushMode()) {
+    return getPatternRushInfoPanelMarkup();
+  }
+  return `<div class="op-grid-4">${getMenuOperationCardsMarkup()}</div>`;
+}
+
+function getMenuDifficultyCardsMarkup() {
+  const levels = getActiveDifficultyLevels();
+  const recordOp = getRecordOperation();
+  const hs = (lvl) => getHighScore(state.gameMode, recordOp, lvl.max);
+  const hc = (lvl) => getHighCorrect(state.gameMode, recordOp, lvl.max);
+  const hco = (lvl) => getHighCombo(state.gameMode, recordOp, lvl.max);
+  const hbt = (lvl) => getBestTime(state.gameMode, recordOp, lvl.max);
+
+  return levels.map((lvl, i) => {
     const diffLabel = state.gameMode === 'overdrive' 
       ? `Multiplier: ${OVERDRIVE_MULTIPLIERS[getDifficultyTone(lvl)]}x` 
       : lvl.label;
@@ -602,7 +772,8 @@ function updateMenuSelectionUI({ rebuildDiffGrid = false } = {}) {
   if (state.screen !== 'menu') return;
 
   const modeSwitch = document.querySelector('.mode-switch');
-  const opGrid = document.querySelector('.op-grid-4');
+  const modeSpecificPanel = document.querySelector('.mode-specific-panel');
+  const opGrid = modeSpecificPanel?.querySelector('.op-grid-4');
   const diffGrid = document.querySelector('.diff-grid');
   const panelModeBadge = document.querySelector('.panel-mode-badge');
 
@@ -612,13 +783,17 @@ function updateMenuSelectionUI({ rebuildDiffGrid = false } = {}) {
     button.setAttribute('aria-pressed', String(isActive));
   });
 
-  opGrid?.querySelectorAll('.op-chip').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.op === state.operation);
-  });
-
   if (panelModeBadge) {
     panelModeBadge.innerHTML = getPanelModeBadgeMarkup();
   }
+
+  if (rebuildDiffGrid && modeSpecificPanel) {
+    modeSpecificPanel.innerHTML = getMenuModeSpecificMarkup();
+  }
+
+  modeSpecificPanel?.querySelectorAll('.op-chip').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.op === state.operation);
+  });
 
   if (diffGrid) {
     if (rebuildDiffGrid) {
@@ -666,7 +841,7 @@ function renderMenu() {
           </div>
 
           <div class="panel-right-body">
-            <div class="op-grid-4">${getMenuOperationCardsMarkup()}</div>
+            <div class="mode-specific-panel">${getMenuModeSpecificMarkup()}</div>
             <div class="diff-section">
               <div class="diff-grid">${getMenuDifficultyCardsMarkup()}</div>
             </div>
@@ -720,15 +895,16 @@ function renderMenu() {
     updateMenuSelectionUI({ rebuildDiffGrid: true });
   });
 
-  document.querySelector('.op-grid-4')?.addEventListener('click', (event) => {
+  document.querySelector('.panel-right-body')?.addEventListener('click', (event) => {
     const chip = event.target.closest('.op-chip');
-    if (!chip || state.operation === chip.dataset.op) return;
-    state.operation = chip.dataset.op;
-    state.selectedLevelIdx = 0;
-    updateMenuSelectionUI({ rebuildDiffGrid: true });
-  });
+    if (chip) {
+      if (state.operation === chip.dataset.op) return;
+      state.operation = chip.dataset.op;
+      state.selectedLevelIdx = 0;
+      updateMenuSelectionUI({ rebuildDiffGrid: true });
+      return;
+    }
 
-  document.querySelector('.diff-grid')?.addEventListener('click', (event) => {
     const card = event.target.closest('.diff-card');
     if (!card) return;
     const nextIdx = parseInt(card.dataset.idx, 10);
@@ -738,7 +914,7 @@ function renderMenu() {
   });
 
   document.getElementById('start-game-btn')?.addEventListener('click', () => {
-    state.level = OPERATIONS[state.operation].levels[state.selectedLevelIdx];
+    state.level = getSelectedDifficultyLevel();
     startGame();
   });
 
@@ -758,7 +934,8 @@ function renderMenu() {
 // Game Screen
 // ============================================
 function renderGame() {
-  const op = OPERATIONS[state.operation];
+  const isPattern = isPatternRushMode();
+  const op = isPattern ? null : OPERATIONS[state.operation];
   const isRace = isRaceMode();
   const timeTone = isRace ? 'ht-time' : 'ht-time' + (state.timeLeft <= 10 ? ' time-warn' : '');
   const timeValue = isRace ? formatElapsedMs(state.elapsedMs) : `${state.timeLeft}s`;
@@ -810,7 +987,7 @@ function renderGame() {
         </div>
 
         <div class="problem-stage">
-          <div class="problem-label">${op.label}</div>
+          <div class="problem-label">${isPattern ? 'Next Number' : op.label}</div>
           <div id="problem" class="problem-text">${state.currentProblem}</div>
           <div class="problem-eq-line"></div>
         </div>
@@ -819,7 +996,7 @@ function renderGame() {
           ${state.useKeypad ? `
             <div class="answer-display focus" id="answer-display">${state.inputValue}<span class="cursor-blink"></span></div>
           ` : `
-            <input type="text" id="answer-input" value="${state.inputValue}" autocomplete="off" inputmode="decimal" spellcheck="false" />
+            <input type="text" id="answer-input" value="${state.inputValue}" autocomplete="off" inputmode="${isPattern ? 'numeric' : 'decimal'}" spellcheck="false" />
           `}
         </div>
 
@@ -872,6 +1049,28 @@ function handlePhysicalKeyboard(e) {
 }
 
 function renderKeypad() {
+  if (isPatternRushMode()) {
+    return `
+      <div class="keypad-container">
+        <div class="keypad">
+          <button class="key-btn" data-key="7">7</button>
+          <button class="key-btn" data-key="8">8</button>
+          <button class="key-btn" data-key="9">9</button>
+          <button class="key-btn key-delete" data-key="del">${renderIcon('delete', 'key-icon')}</button>
+          <button class="key-btn" data-key="4">4</button>
+          <button class="key-btn" data-key="5">5</button>
+          <button class="key-btn" data-key="6">6</button>
+          <button class="key-btn key-clear" data-key="clear">CLR</button>
+          <button class="key-btn" data-key="1">1</button>
+          <button class="key-btn" data-key="2">2</button>
+          <button class="key-btn" data-key="3">3</button>
+          <button class="key-btn key-submit" data-key="submit">Submit</button>
+          <button class="key-btn" data-key="0" style="grid-column: span 4;">0</button>
+        </div>
+      </div>
+    `;
+  }
+
   const decimalKey = state.operation === 'division'
     ? '<button class="key-btn key-action" data-key="decimal">,</button>'
     : '<button class="key-btn key-action key-disabled" data-key="decimal" disabled>,</button>';
@@ -936,6 +1135,11 @@ function normalizeForParse(value) {
 }
 
 function sanitizeInputValue(value) {
+  if (isPatternRushInputIntegerOnly()) {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits.replace(/^0+(?=\d)/, '') || '0';
+  }
+
   const raw = String(value ?? '').trim().replace(/\./g, ',');
   let negative = false;
   let decimalUsed = false;
@@ -996,6 +1200,7 @@ function resetInputValue() {
 }
 
 function toggleNegative() {
+  if (isPatternRushInputIntegerOnly()) return;
   if (state.inputValue.startsWith('-')) {
     state.inputValue = state.inputValue.substring(1);
   } else {
@@ -1004,6 +1209,7 @@ function toggleNegative() {
 }
 
 function appendDecimalPoint() {
+  if (isPatternRushInputIntegerOnly()) return;
   if (state.operation !== 'division' || state.inputValue.includes(',')) return;
   if (state.inputValue === '0' || state.inputValue === '-0') {
     state.inputValue += ',';
@@ -1032,7 +1238,7 @@ function updateAnswerInput() {
 function handleSharedInputKey(key) {
   if (key >= '0' && key <= '9') {
     appendInputDigit(key);
-  } else if (key === '.' || key === ',') {
+  } else if ((key === '.' || key === ',') && !isPatternRushInputIntegerOnly()) {
     appendDecimalPoint();
   } else if (key === 'Backspace') {
     deleteInputChar();
@@ -1041,7 +1247,7 @@ function handleSharedInputKey(key) {
   } else if (key === 'Enter') {
     submitKeypadAnswer();
     return true;
-  } else if (key === '-') {
+  } else if (key === '-' && !isPatternRushInputIntegerOnly()) {
     toggleNegative();
   } else {
     return false;
@@ -1053,8 +1259,11 @@ function handleSharedInputKey(key) {
 }
 
 function submitKeypadAnswer() {
-  const val = parseFloat(normalizeForParse(state.inputValue));
-  if (!isNaN(val)) {
+  const normalizedValue = isPatternRushInputIntegerOnly()
+    ? Number.parseInt(state.inputValue, 10)
+    : parseFloat(normalizeForParse(state.inputValue));
+  if (!Number.isNaN(normalizedValue)) {
+    const val = isPatternRushInputIntegerOnly() ? normalizedValue : normalizedValue;
     checkAnswer(val);
   }
   resetInputValue();
@@ -1071,11 +1280,12 @@ function startGame() {
   state.progressSolved = 0;
   state.combo = 0;
   state.maxCombo = 0;
-  state.comboTimer = 10;
-  state.timeLeft = GAME_DURATION;
+  state.comboTimer = getComboDuration();
+  state.timeLeft = getGameDuration();
   state.elapsedMs = 0;
   state.timerStartedAt = 0;
   state.inputValue = '0';
+  state.currentPuzzleData = null;
   state.useKeypad = isTouchDevice();
 
   if (state.gameMode === 'overdrive') {
@@ -1146,15 +1356,406 @@ function startComboLoop() {
     if (state.combo > 0) {
       state.comboTimer--;
       if (state.comboTimer <= 0) {
-        state.combo = Math.max(0, state.combo - 1);
-        state.comboTimer = 10;
+        if (isPatternRushMode()) {
+          state.combo = 0;
+          state.comboTimer = getComboDuration();
+        } else {
+          state.combo = Math.max(0, state.combo - 1);
+          state.comboTimer = getComboDuration();
+        }
       }
       updateComboUI();
     }
   }, 1000);
 }
 
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pickRandom(values) {
+  return values[Math.floor(Math.random() * values.length)];
+}
+
+function chooseWeightedFamily(weights) {
+  const entries = Object.entries(weights);
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
+  let roll = Math.random() * total;
+  for (const [family, weight] of entries) {
+    roll -= weight;
+    if (roll <= 0) {
+      return family;
+    }
+  }
+  return entries[entries.length - 1]?.[0] || 'arithmetic';
+}
+
+function getAllowedPatternFamilies(level) {
+  return PATTERN_FAMILY_PRECEDENCE.filter((family) => level.familyWeights[family]);
+}
+
+function getPatternDisplayText(sequence) {
+  return `${sequence.join(', ')}, ?`;
+}
+
+function computePatternReadability(displayText) {
+  return Math.max(0.1, 1 - ((displayText.length - 12) / PATTERN_RUSH_DISPLAY_LENGTH_CAP));
+}
+
+function createPatternCandidate(level, family, fullSequence) {
+  const sequence = fullSequence.slice(0, -1);
+  const displayText = getPatternDisplayText(sequence);
+  return {
+    family,
+    difficulty: level.difficultyName,
+    sequence,
+    fullSequence,
+    answer: fullSequence[fullSequence.length - 1],
+    displayText,
+    readabilityScore: computePatternReadability(displayText),
+    uniquenessScore: 1,
+  };
+}
+
+function matchesArithmetic(sequence) {
+  if (sequence.length < 3) return false;
+  const diff = sequence[1] - sequence[0];
+  if (diff === 0) return false;
+  return sequence.every((value, index) => index === 0 || value - sequence[index - 1] === diff);
+}
+
+function matchesGeometric(sequence) {
+  if (sequence.length < 3 || sequence[0] <= 0) return false;
+  if (sequence[1] % sequence[0] !== 0) return false;
+  const ratio = sequence[1] / sequence[0];
+  if (!Number.isInteger(ratio) || ratio <= 1) return false;
+  return sequence.every((value, index) => {
+    if (index === 0) return true;
+    return sequence[index - 1] > 0
+      && value % sequence[index - 1] === 0
+      && (value / sequence[index - 1]) === ratio;
+  });
+}
+
+function matchesAlternating(sequence) {
+  if (sequence.length < 5) return false;
+
+  const addThenMultiply = (() => {
+    const add = sequence[1] - sequence[0];
+    if (add <= 0) return false;
+    if (sequence[1] <= 0 || sequence[2] % sequence[1] !== 0) return false;
+    const multiply = sequence[2] / sequence[1];
+    if (!Number.isInteger(multiply) || multiply <= 1) return false;
+    for (let index = 1; index < sequence.length; index += 1) {
+      const previous = sequence[index - 1];
+      const expected = (index % 2 === 1) ? previous + add : previous * multiply;
+      if (sequence[index] !== expected) return false;
+    }
+    return true;
+  })();
+
+  if (addThenMultiply) return true;
+
+  const multiplyThenAdd = (() => {
+    if (sequence[0] <= 0 || sequence[1] % sequence[0] !== 0) return false;
+    const multiply = sequence[1] / sequence[0];
+    if (!Number.isInteger(multiply) || multiply <= 1) return false;
+    const add = sequence[2] - sequence[1];
+    if (add <= 0) return false;
+    for (let index = 1; index < sequence.length; index += 1) {
+      const previous = sequence[index - 1];
+      const expected = (index % 2 === 1) ? previous * multiply : previous + add;
+      if (sequence[index] !== expected) return false;
+    }
+    return true;
+  })();
+
+  return multiplyThenAdd;
+}
+
+function matchesSecondDifference(sequence) {
+  if (sequence.length < 5) return false;
+  const diffs = [];
+  for (let index = 1; index < sequence.length; index += 1) {
+    diffs.push(sequence[index] - sequence[index - 1]);
+  }
+  const delta = diffs[1] - diffs[0];
+  if (delta === 0) return false;
+  for (let index = 1; index < diffs.length; index += 1) {
+    if ((diffs[index] - diffs[index - 1]) !== delta) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function matchesPositionBased(sequence) {
+  if (sequence.length < 6) return false;
+  const oddSequence = sequence.filter((_, index) => index % 2 === 0);
+  const evenSequence = sequence.filter((_, index) => index % 2 === 1);
+  const oddValid = matchesArithmetic(oddSequence) || matchesGeometric(oddSequence);
+  const evenValid = matchesArithmetic(evenSequence) || matchesGeometric(evenSequence);
+  return oddValid && evenValid;
+}
+
+function matchesRecursiveLight(sequence) {
+  if (sequence.length < 5) return false;
+  for (let index = 2; index < sequence.length; index += 1) {
+    if (sequence[index] !== sequence[index - 1] + sequence[index - 2]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+const PATTERN_MATCHERS = {
+  arithmetic: matchesArithmetic,
+  geometric: matchesGeometric,
+  alternating: matchesAlternating,
+  'second-difference': matchesSecondDifference,
+  'position-based': matchesPositionBased,
+  'recursive-light': matchesRecursiveLight,
+};
+
+function getMatchingPatternFamilies(sequence) {
+  return PATTERN_FAMILY_PRECEDENCE.filter((family) => PATTERN_MATCHERS[family](sequence));
+}
+
+function isPatternDisplayReadable(candidate, level) {
+  if (candidate.displayText.length > PATTERN_RUSH_DISPLAY_LENGTH_CAP) return false;
+  if (candidate.readabilityScore < 0.22) return false;
+  if (candidate.sequence.length < 4) return false;
+  return candidate.fullSequence.every((value) => value <= level.max && value >= 0);
+}
+
+function validatePatternCandidate(candidate, level) {
+  if (!candidate) return false;
+  if (!candidate.fullSequence.every((value) => Number.isInteger(value) && value >= 0)) return false;
+  if (!isPatternDisplayReadable(candidate, level)) return false;
+
+  const matches = getMatchingPatternFamilies(candidate.fullSequence);
+  const currentIndex = PATTERN_FAMILY_PRECEDENCE.indexOf(candidate.family);
+  if (currentIndex === -1 || !matches.includes(candidate.family)) return false;
+
+  const simplerMatches = matches.filter((family) => PATTERN_FAMILY_PRECEDENCE.indexOf(family) < currentIndex);
+  if (simplerMatches.length > 0) return false;
+
+  candidate.uniquenessScore = matches.length === 1 ? 1 : Math.max(0.35, 1 - (matches.length - 1) * 0.35);
+  return candidate.uniquenessScore >= 0.65;
+}
+
+function generateArithmeticPattern(level, totalLength) {
+  const [minStep, maxStep] = level.arithmeticStepRange;
+  const descending = Math.random() < 0.35;
+  const stepValue = randomInt(minStep, maxStep);
+  const step = descending ? -stepValue : stepValue;
+  const minStart = descending ? stepValue * (totalLength - 1) : 1;
+  const maxStart = descending ? level.max : level.max - (stepValue * (totalLength - 1));
+  if (maxStart < minStart) return null;
+  const start = randomInt(minStart, maxStart);
+  return Array.from({ length: totalLength }, (_, index) => start + (step * index));
+}
+
+function generateGeometricPattern(level, totalLength) {
+  const [minRatio, maxRatio] = level.geometricRatioRange;
+  const ratio = randomInt(minRatio, maxRatio);
+  const maxStart = Math.floor(level.max / (ratio ** (totalLength - 1)));
+  if (maxStart < 1) return null;
+  const start = randomInt(1, Math.max(1, maxStart));
+  return Array.from({ length: totalLength }, (_, index) => start * (ratio ** index));
+}
+
+function generateAlternatingPattern(level, totalLength) {
+  const [minRatio, maxRatio] = level.geometricRatioRange;
+  const ratio = randomInt(minRatio, maxRatio);
+  const addMin = Math.max(2, Math.floor(level.arithmeticStepRange[0] / 2));
+  const addMax = Math.max(addMin, Math.floor(level.arithmeticStepRange[1] / 2));
+  const add = randomInt(addMin, addMax);
+  const order = Math.random() < 0.5 ? 'add-then-multiply' : 'multiply-then-add';
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const maxStart = Math.max(1, Math.floor(level.max / (ratio ** Math.ceil((totalLength - 1) / 2))));
+    const start = randomInt(1, maxStart);
+    const sequence = [start];
+    let valid = true;
+
+    while (sequence.length < totalLength) {
+      const previous = sequence[sequence.length - 1];
+      const stepIndex = sequence.length - 1;
+      const useAddFirst = order === 'add-then-multiply';
+      const next = ((stepIndex % 2 === 0) === useAddFirst)
+        ? previous + add
+        : previous * ratio;
+      if (!Number.isInteger(next) || next < 0 || next > level.max) {
+        valid = false;
+        break;
+      }
+      sequence.push(next);
+    }
+
+    if (valid) {
+      return sequence;
+    }
+  }
+
+  return null;
+}
+
+function generateSecondDifferencePattern(level, totalLength) {
+  const firstDiff = randomInt(Math.max(2, Math.floor(level.arithmeticStepRange[0] / 2)), Math.max(4, Math.floor(level.arithmeticStepRange[1] / 2)));
+  const delta = randomInt(2, Math.max(3, Math.floor(level.arithmeticStepRange[1] / 3)));
+  let totalIncrease = 0;
+  for (let index = 0; index < totalLength - 1; index += 1) {
+    totalIncrease += firstDiff + (delta * index);
+  }
+
+  const maxStart = level.max - totalIncrease;
+  if (maxStart < 1) return null;
+
+  const start = randomInt(1, maxStart);
+  const sequence = [start];
+  let diff = firstDiff;
+  while (sequence.length < totalLength) {
+    sequence.push(sequence[sequence.length - 1] + diff);
+    diff += delta;
+  }
+  return sequence;
+}
+
+function generateBasicPatternSubsequence(type, count, cap, level) {
+  if (type === 'geometric') {
+    const maxRatio = Math.min(level.geometricRatioRange?.[1] || 3, 3);
+    const ratio = randomInt(2, Math.max(2, maxRatio));
+    const maxStart = Math.floor(cap / (ratio ** (count - 1)));
+    if (maxStart < 1) return null;
+    const start = randomInt(1, Math.max(1, maxStart));
+    return Array.from({ length: count }, (_, index) => start * (ratio ** index));
+  }
+
+  const maxStep = Math.max(2, Math.floor(level.arithmeticStepRange[1] / 2));
+  const step = randomInt(Math.max(2, Math.floor(level.arithmeticStepRange[0] / 2)), maxStep);
+  const maxStart = cap - (step * (count - 1));
+  if (maxStart < 1) return null;
+  const start = randomInt(1, maxStart);
+  return Array.from({ length: count }, (_, index) => start + (step * index));
+}
+
+function generatePositionBasedPattern(level, totalLength) {
+  const oddCount = Math.ceil(totalLength / 2);
+  const evenCount = Math.floor(totalLength / 2);
+  const combinations = [
+    ['arithmetic', 'arithmetic'],
+    ['arithmetic', 'geometric'],
+    ['geometric', 'arithmetic'],
+  ];
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const [oddType, evenType] = pickRandom(combinations);
+    const oddSequence = generateBasicPatternSubsequence(oddType, oddCount, level.max, level);
+    const evenSequence = generateBasicPatternSubsequence(evenType, evenCount, level.max, level);
+    if (!oddSequence || !evenSequence) continue;
+
+    const sequence = [];
+    for (let index = 0; index < totalLength; index += 1) {
+      sequence.push(index % 2 === 0 ? oddSequence[Math.floor(index / 2)] : evenSequence[Math.floor(index / 2)]);
+    }
+    if (sequence.every((value) => value <= level.max)) {
+      return sequence;
+    }
+  }
+
+  return null;
+}
+
+function generateRecursiveLightPattern(level, totalLength) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const first = randomInt(1, Math.max(2, Math.floor(level.max / 40)));
+    const second = randomInt(first + 1, Math.max(first + 1, Math.floor(level.max / 20)));
+    const sequence = [first, second];
+    let valid = true;
+
+    while (sequence.length < totalLength) {
+      const next = sequence[sequence.length - 1] + sequence[sequence.length - 2];
+      if (next > level.max) {
+        valid = false;
+        break;
+      }
+      sequence.push(next);
+    }
+
+    if (valid) {
+      return sequence;
+    }
+  }
+
+  return null;
+}
+
+function generatePatternCandidateForFamily(level, family) {
+  const totalLength = pickRandom(level.sequenceLengths) + 1;
+  let fullSequence = null;
+
+  switch (family) {
+    case 'arithmetic':
+      fullSequence = generateArithmeticPattern(level, totalLength);
+      break;
+    case 'geometric':
+      fullSequence = generateGeometricPattern(level, totalLength);
+      break;
+    case 'alternating':
+      fullSequence = generateAlternatingPattern(level, totalLength);
+      break;
+    case 'second-difference':
+      fullSequence = generateSecondDifferencePattern(level, totalLength);
+      break;
+    case 'position-based':
+      fullSequence = generatePositionBasedPattern(level, totalLength);
+      break;
+    case 'recursive-light':
+      fullSequence = generateRecursiveLightPattern(level, totalLength);
+      break;
+    default:
+      return null;
+  }
+
+  if (!fullSequence) return null;
+  return createPatternCandidate(level, family, fullSequence);
+}
+
+function generatePatternRushPuzzle(level) {
+  for (let attempt = 0; attempt < PATTERN_RUSH_MAX_ATTEMPTS; attempt += 1) {
+    const family = chooseWeightedFamily(level.familyWeights);
+    const candidate = generatePatternCandidateForFamily(level, family);
+    if (validatePatternCandidate(candidate, level)) {
+      return candidate;
+    }
+  }
+
+  for (const family of getAllowedPatternFamilies(level)) {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const candidate = generatePatternCandidateForFamily(level, family);
+      if (validatePatternCandidate(candidate, level)) {
+        return candidate;
+      }
+    }
+  }
+
+  const emergencyLevel = PATTERN_RUSH_DIFFICULTIES[0];
+  const emergencySequence = generateArithmeticPattern(emergencyLevel, emergencyLevel.sequenceLengths[0] + 1)
+    || [2, 5, 8, 11, 14];
+  return createPatternCandidate(emergencyLevel, 'arithmetic', emergencySequence);
+}
+
 function generateProblem() {
+  if (isPatternRushMode()) {
+    const puzzle = generatePatternRushPuzzle(state.level);
+    state.currentPuzzleData = puzzle;
+    state.currentAnswer = puzzle.answer;
+    state.currentProblem = puzzle.displayText;
+    return;
+  }
+
+  state.currentPuzzleData = null;
   const max = state.gameMode === 'overdrive' ? state.overdriveMax : state.level.max;
   const num1 = Math.floor(Math.random() * max) + 1;
   const num2 = Math.floor(Math.random() * max) + 1;
@@ -1204,7 +1805,9 @@ function fitProblemText(el) {
   const container = el.parentElement;
   if (!container) return;
   const maxW = container.clientWidth - 8;
-  const baseSizes = [3.75, 3.3, 2.9, 2.4, 1.95, 1.45];
+  const baseSizes = isPatternRushMode()
+    ? [3.1, 2.7, 2.35, 2.05, 1.75, 1.45]
+    : [3.75, 3.3, 2.9, 2.4, 1.95, 1.45];
   for (const size of baseSizes) {
     el.style.fontSize = size + 'rem';
     if (el.scrollWidth <= maxW) return;
@@ -1215,20 +1818,25 @@ function fitProblemText(el) {
 function checkAnswer(userAnswer) {
   if (isNaN(userAnswer)) return;
 
-  const normalizedAnswer = state.operation === 'division'
-    ? roundToTwo(userAnswer)
-    : userAnswer;
+  const normalizedAnswer = isPatternRushMode()
+    ? Number.parseInt(userAnswer, 10)
+    : (state.operation === 'division'
+      ? roundToTwo(userAnswer)
+      : userAnswer);
+
+  if (Number.isNaN(normalizedAnswer)) return;
 
   if (normalizedAnswer === state.currentAnswer) {
-    const elapsed = 10 - state.comboTimer;
-    const bonus = Math.max(0, (state.combo * 10) - elapsed);
+    const bonus = isPatternRushMode()
+      ? (state.combo > 0 ? Math.max(0, Math.floor(state.comboTimer)) : 0)
+      : Math.max(0, (state.combo * 10) - (getComboDuration() - state.comboTimer));
     const totalAward = CORRECT_SCORE + bonus;
     
     state.score += totalAward;
     
     state.combo += 1;
     state.maxCombo = Math.max(state.maxCombo, state.combo);
-    state.comboTimer = 10;
+    state.comboTimer = getComboDuration();
 
     if (isRaceMode()) {
       state.progressSolved += 1;
@@ -1265,7 +1873,7 @@ function checkAnswer(userAnswer) {
   } else {
     state.wrong += 1;
     state.combo = 0;
-    state.comboTimer = 10;
+    state.comboTimer = getComboDuration();
     showFeedback('Wrong', 'error');
   }
 
@@ -1304,6 +1912,7 @@ function updateComboUI() {
   const comboStat = document.getElementById('combo-stat');
   const comboVal = document.getElementById('combo');
   const comboRingProgress = document.getElementById('combo-ring-progress');
+  const comboDuration = getComboDuration();
 
   if (state.combo > 0) {
     if (comboStat) {
@@ -1312,7 +1921,7 @@ function updateComboUI() {
     }
     if (comboVal) comboVal.textContent = state.combo + 'x';
     if (comboRingProgress) {
-      const progress = Math.max(0, Math.min(1, state.comboTimer / 10));
+      const progress = Math.max(0, Math.min(1, state.comboTimer / comboDuration));
       comboRingProgress.style.strokeDashoffset = `${COMBO_RING_CIRCUMFERENCE * (1 - progress)}`;
     }
   } else {
@@ -1457,28 +2066,29 @@ function endGame() {
   }
 
   state.screen = 'end';
+  const recordOp = getRecordOperation();
 
-  const prevHS = getHighScore(state.gameMode, state.operation, state.level.max);
-  const prevHC = getHighCorrect(state.gameMode, state.operation, state.level.max);
-  const prevHCO = getHighCombo(state.gameMode, state.operation, state.level.max);
-  const prevBT = getBestTime(state.gameMode, state.operation, state.level.max);
+  const prevHS = getHighScore(state.gameMode, recordOp, state.level.max);
+  const prevHC = getHighCorrect(state.gameMode, recordOp, state.level.max);
+  const prevHCO = getHighCombo(state.gameMode, recordOp, state.level.max);
+  const prevBT = getBestTime(state.gameMode, recordOp, state.level.max);
 
   const records = { score: false, correct: false, time: false, combo: false };
 
   if (state.score > prevHS) {
-    setHighScore(state.gameMode, state.operation, state.level.max, state.score);
+    setHighScore(state.gameMode, recordOp, state.level.max, state.score);
     records.score = true;
   }
   if (!isRaceMode() && state.correct > prevHC) {
-    setHighCorrect(state.gameMode, state.operation, state.level.max, state.correct);
+    setHighCorrect(state.gameMode, recordOp, state.level.max, state.correct);
     records.correct = true;
   }
   if (isRaceMode() && (prevBT === null || state.elapsedMs < prevBT)) {
-    setBestTime(state.gameMode, state.operation, state.level.max, state.elapsedMs);
+    setBestTime(state.gameMode, recordOp, state.level.max, state.elapsedMs);
     records.time = true;
   }
   if (state.maxCombo > prevHCO) {
-    setHighCombo(state.gameMode, state.operation, state.level.max, state.maxCombo);
+    setHighCombo(state.gameMode, recordOp, state.level.max, state.maxCombo);
     records.combo = true;
   }
 
@@ -1488,11 +2098,12 @@ function endGame() {
 function renderEnd(records = {}) {
   const mode = GAME_MODES[state.gameMode];
   const isRace = isRaceMode();
+  const recordOp = getRecordOperation();
 
-  const bestScore = getHighScore(state.gameMode, state.operation, state.level.max);
-  const bestCombo = getHighCombo(state.gameMode, state.operation, state.level.max);
-  const bestCorrect = getHighCorrect(state.gameMode, state.operation, state.level.max);
-  const bestTime = getBestTime(state.gameMode, state.operation, state.level.max);
+  const bestScore = getHighScore(state.gameMode, recordOp, state.level.max);
+  const bestCombo = getHighCombo(state.gameMode, recordOp, state.level.max);
+  const bestCorrect = getHighCorrect(state.gameMode, recordOp, state.level.max);
+  const bestTime = getBestTime(state.gameMode, recordOp, state.level.max);
 
   const newBadge = `<span class="stat-new">NEW</span>`;
 
