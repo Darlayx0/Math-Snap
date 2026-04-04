@@ -276,7 +276,6 @@ function renderGuideModal() {
   const guideSummary = [
     ['2 Game Modes', 'Sprint + Race'],
     ['4 Operations', 'Semua level aktif'],
-    ['Scrollable Guide', 'Nyaman di windowed'],
   ].map(([label, value]) => `
     <div class="guide-summary-chip">
       <span class="guide-summary-value">${label}</span>
@@ -331,7 +330,7 @@ function renderGuideModal() {
                 <div class="guide-eyebrow">${renderIcon('guide', 'mini-icon')}Math Snap Guide</div>
                 <div class="guide-header-copy">
                   <h2 class="guide-title">Panduan Permainan</h2>
-                  <p class="guide-intro">Pelajari cara kerja skor, combo, kontrol, dan record dalam tampilan yang lebih ringkas, rapi, dan mudah dipindai.</p>
+                  <p class="guide-intro">Pelajari mode, skor, combo, kontrol, dan record dengan tampilan yang lebih ringkas dan mudah dipindai.</p>
                 </div>
               </div>
               <div class="guide-header-actions">
@@ -471,25 +470,35 @@ function render() {
   }
 }
 
-// ============================================
-// Menu Screen
-// ============================================
-function renderMenu() {
-  const activeMode = GAME_MODES[state.gameMode];
+function getMenuModeTabsMarkup() {
+  return Object.entries(GAME_MODES).map(([key, mode]) => `
+    <button class="mode-tab ${state.gameMode === key ? 'is-active' : ''}" data-mode="${key}" type="button" aria-pressed="${state.gameMode === key}">
+      <span class="mode-tab-icon">${renderModeIcon(key, 'button-icon')}</span>
+      <span class="mode-tab-copy">
+        <span class="mode-tab-label">${mode.label}</span>
+        <span class="mode-tab-desc">${mode.menuDesc}</span>
+      </span>
+    </button>
+  `).join('');
+}
+
+function getMenuOperationCardsMarkup() {
+  return Object.entries(OPERATIONS).map(([key, op]) => `
+    <button class="op-chip ${key} ${state.operation === key ? 'is-active' : ''}" data-op="${key}" type="button" id="op-${key}">
+      <span class="op-chip-icon">${renderOperationIcon(key, 'op-chip-svg')}</span>
+      <span class="op-chip-label">${op.label}</span>
+    </button>
+  `).join('');
+}
+
+function getMenuDifficultyCardsMarkup() {
   const op = OPERATIONS[state.operation];
   const hs = (lvl) => getHighScore(state.gameMode, state.operation, lvl.max);
   const hc = (lvl) => getHighCorrect(state.gameMode, state.operation, lvl.max);
   const hco = (lvl) => getHighCombo(state.gameMode, state.operation, lvl.max);
   const hbt = (lvl) => getBestTime(state.gameMode, state.operation, lvl.max);
 
-  const opCards = Object.entries(OPERATIONS).map(([key, o]) => `
-    <button class="op-chip ${key} ${state.operation === key ? 'is-active' : ''}" data-op="${key}" type="button" id="op-${key}">
-      <span class="op-chip-icon">${renderOperationIcon(key, 'op-chip-svg')}</span>
-      <span class="op-chip-label">${o.label}</span>
-    </button>
-  `).join('');
-
-  const diffCards = op.levels.map((lvl, i) => `
+  return op.levels.map((lvl, i) => `
     <div class="diff-card ${state.selectedLevelIdx === i ? 'is-selected' : ''}" data-idx="${i}" id="diff-${i}">
       <div class="diff-main">
         <div class="diff-head">
@@ -506,7 +515,50 @@ function renderMenu() {
       </div>
     </div>
   `).join('');
+}
 
+function getPanelModeBadgeMarkup() {
+  const activeMode = GAME_MODES[state.gameMode];
+  return `${renderModeIcon(state.gameMode, 'badge-icon')}<span>${activeMode.label}</span>`;
+}
+
+function updateMenuSelectionUI({ rebuildDiffGrid = false } = {}) {
+  if (state.screen !== 'menu') return;
+
+  const modeSwitch = document.querySelector('.mode-switch');
+  const opGrid = document.querySelector('.op-grid-4');
+  const diffGrid = document.querySelector('.diff-grid');
+  const panelModeBadge = document.querySelector('.panel-mode-badge');
+
+  modeSwitch?.querySelectorAll('.mode-tab').forEach((button) => {
+    const isActive = button.dataset.mode === state.gameMode;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+
+  opGrid?.querySelectorAll('.op-chip').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.op === state.operation);
+  });
+
+  if (panelModeBadge) {
+    panelModeBadge.innerHTML = getPanelModeBadgeMarkup();
+  }
+
+  if (diffGrid) {
+    if (rebuildDiffGrid) {
+      diffGrid.innerHTML = getMenuDifficultyCardsMarkup();
+    } else {
+      diffGrid.querySelectorAll('.diff-card').forEach((card, index) => {
+        card.classList.toggle('is-selected', index === state.selectedLevelIdx);
+      });
+    }
+  }
+}
+
+// ============================================
+// Menu Screen
+// ============================================
+function renderMenu() {
   app.innerHTML = `
     <div class="game-container menu-container">
       <div class="menu-layout">
@@ -520,15 +572,7 @@ function renderMenu() {
           </div>
           <div class="menu-left-center">
             <div class="mode-switch" role="tablist" aria-label="Game mode">
-              ${Object.entries(GAME_MODES).map(([key, mode]) => `
-                <button class="mode-tab ${state.gameMode === key ? 'is-active' : ''}" data-mode="${key}" type="button" aria-pressed="${state.gameMode === key}">
-                  <span class="mode-tab-icon">${renderModeIcon(key, 'button-icon')}</span>
-                  <span class="mode-tab-copy">
-                    <span class="mode-tab-label">${mode.label}</span>
-                    <span class="mode-tab-desc">${mode.menuDesc}</span>
-                  </span>
-                </button>
-              `).join('')}
+              ${getMenuModeTabsMarkup()}
             </div>
           </div>
           <div class="menu-left-bottom">
@@ -540,13 +584,13 @@ function renderMenu() {
         <!-- RIGHT PANEL (desktop) / BOTTOM SECTION (mobile) -->
         <div class="menu-panel-right glass-panel">
           <div class="panel-right-header">
-            <div class="panel-mode-badge">${renderModeIcon(state.gameMode, 'badge-icon')}<span>${activeMode.label}</span></div>
+            <div class="panel-mode-badge">${getPanelModeBadgeMarkup()}</div>
           </div>
 
           <div class="panel-right-body">
-            <div class="op-grid-4">${opCards}</div>
+            <div class="op-grid-4">${getMenuOperationCardsMarkup()}</div>
             <div class="diff-section">
-              <div class="diff-grid">${diffCards}</div>
+              <div class="diff-grid">${getMenuDifficultyCardsMarkup()}</div>
             </div>
             <button class="primary-btn start-btn" id="start-game-btn">${renderIcon('play', 'button-icon')} Mulai</button>
             <div class="mobile-actions">
@@ -590,35 +634,33 @@ function renderMenu() {
     button.addEventListener('click', () => setGuideTab(button.dataset.guideTab));
   });
 
-  // Mode tabs
-  document.querySelectorAll('.mode-tab').forEach((button) => {
-    button.addEventListener('click', () => {
-      state.gameMode = button.dataset.mode;
-      state.selectedLevelIdx = 0;
-      render();
-    });
+  document.querySelector('.mode-switch')?.addEventListener('click', (event) => {
+    const button = event.target.closest('.mode-tab');
+    if (!button || state.gameMode === button.dataset.mode) return;
+    state.gameMode = button.dataset.mode;
+    state.selectedLevelIdx = 0;
+    updateMenuSelectionUI({ rebuildDiffGrid: true });
   });
 
-  // Operation chips
-  document.querySelectorAll('.op-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      state.operation = chip.dataset.op;
-      state.selectedLevelIdx = 0;
-      render();
-    });
+  document.querySelector('.op-grid-4')?.addEventListener('click', (event) => {
+    const chip = event.target.closest('.op-chip');
+    if (!chip || state.operation === chip.dataset.op) return;
+    state.operation = chip.dataset.op;
+    state.selectedLevelIdx = 0;
+    updateMenuSelectionUI({ rebuildDiffGrid: true });
   });
 
-  // Difficulty cards (select, not start)
-  document.querySelectorAll('.diff-card').forEach(card => {
-    card.addEventListener('click', () => {
-      state.selectedLevelIdx = parseInt(card.dataset.idx);
-      render();
-    });
+  document.querySelector('.diff-grid')?.addEventListener('click', (event) => {
+    const card = event.target.closest('.diff-card');
+    if (!card) return;
+    const nextIdx = parseInt(card.dataset.idx, 10);
+    if (state.selectedLevelIdx === nextIdx) return;
+    state.selectedLevelIdx = nextIdx;
+    updateMenuSelectionUI();
   });
 
-  // Start button
   document.getElementById('start-game-btn')?.addEventListener('click', () => {
-    state.level = op.levels[state.selectedLevelIdx];
+    state.level = OPERATIONS[state.operation].levels[state.selectedLevelIdx];
     startGame();
   });
 
