@@ -141,43 +141,8 @@ function renderLabelIcon(name, text) {
   return `<span class="label-with-icon">${renderIcon(name, 'inline-icon')}<span>${text}</span></span>`;
 }
 
-function renderInlineStat({ tone, icon, label, value, id, valueClass = '', title = '' }) {
-  return `
-    <div class="inline-stat ${tone}" title="${title}">
-      <span class="inline-stat-badge">
-        <span class="stat-icon">${renderIcon(icon, 'stats-icon')}</span>
-      </span>
-      <span class="stat-copy">
-        <span class="stat-label">${label}</span>
-        <span class="stat-val ${valueClass}" id="${id}">${value}</span>
-      </span>
-    </div>
-  `;
-}
-
-function renderComboStat() {
-  return `
-    <div class="inline-stat combo" title="Combo multiplier" id="combo-stat" style="display:none">
-      <span class="combo-ring-shell">
-        <svg class="combo-ring" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-          <circle class="combo-ring-track" cx="20" cy="20" r="${COMBO_RING_RADIUS}"></circle>
-          <circle
-            class="combo-ring-progress"
-            id="combo-ring-progress"
-            cx="20"
-            cy="20"
-            r="${COMBO_RING_RADIUS}"
-            style="stroke-dasharray:${COMBO_RING_CIRCUMFERENCE};stroke-dashoffset:${COMBO_RING_CIRCUMFERENCE};"
-          ></circle>
-        </svg>
-        <span class="stat-icon combo-icon">${renderIcon('bolt', 'stats-icon')}</span>
-      </span>
-      <span class="stat-copy">
-        <span class="stat-label">Combo</span>
-        <span class="stat-val" id="combo">0x</span>
-      </span>
-    </div>
-  `;
+function renderHudStat(icon, id, value, tone, title) {
+  return `<div class="hud-cell ${tone}" title="${title}"><span class="hud-icon">${renderIcon(icon, 'hud-svg')}</span><span class="hud-val" id="${id}">${value}</span></div>`;
 }
 
 function renderGuideModal() {
@@ -424,34 +389,40 @@ function renderGame() {
   const timeWarn = state.timeLeft <= 10 ? 'time-warn' : '';
 
   app.innerHTML = `
-    <div class="game-container">
-      <div class="header game-header-hidden">
-        <h1>Math Snap</h1>
-        <div class="subtitle">${op.label} • ${state.level.label}</div>
-      </div>
-
+    <div class="game-container game-active">
       <div class="game-screen glass-panel">
-        <div class="game-top-bar">
-          <div class="inline-stats">
-            ${renderComboStat()}
-            ${renderInlineStat({ tone: 'time', icon: 'time', label: 'Time', value: `${state.timeLeft}s`, id: 'time', valueClass: timeWarn, title: `Time: ${state.timeLeft}s` })}
-            ${renderInlineStat({ tone: 'score', icon: 'spark', label: 'Score', value: state.score, id: 'score', title: `Score: ${state.score}` })}
-            ${renderInlineStat({ tone: 'correct', icon: 'check', label: 'Correct', value: state.correct, id: 'correct', title: `Correct: ${state.correct}` })}
-            ${renderInlineStat({ tone: 'wrong', icon: 'close', label: 'Wrong', value: state.wrong, id: 'wrong', title: `Wrong: ${state.wrong}` })}
-          </div>
 
+        <div class="game-hud">
+          <div class="hud-left">
+            <div class="hud-combo-wrap" id="combo-stat" style="display:none">
+              <svg class="combo-arc" viewBox="0 0 36 36" id="combo-arc">
+                <circle class="combo-arc-track" cx="18" cy="18" r="${COMBO_RING_RADIUS}" />
+                <circle class="combo-arc-fill" id="combo-ring-progress" cx="18" cy="18" r="${COMBO_RING_RADIUS}"
+                  style="stroke-dasharray:${COMBO_RING_CIRCUMFERENCE};stroke-dashoffset:${COMBO_RING_CIRCUMFERENCE};" />
+              </svg>
+              <span class="combo-val" id="combo">0x</span>
+            </div>
+            <div class="hud-mode">${state.level.label}</div>
+          </div>
+          <div class="hud-stats">
+            ${renderHudStat('time', 'time', state.timeLeft + 's', 'ht-time' + (state.timeLeft <= 10 ? ' time-warn' : ''), 'Time')}
+            ${renderHudStat('spark', 'score', state.score, 'ht-score', 'Score')}
+            ${renderHudStat('check', 'correct', state.correct, 'ht-correct', 'Correct')}
+          </div>
           <button class="pause-btn" id="pause-btn" title="Pause">${renderIcon('pause', 'control-icon')}</button>
         </div>
 
-        <div class="problem-container">
+        <div class="problem-stage">
+          <div class="problem-label">${op.label}</div>
           <div id="problem" class="problem-text">${state.currentProblem}</div>
+          <div class="problem-eq-line"></div>
         </div>
 
         <div class="input-container" id="input-area">
           ${state.useKeypad ? `
             <div class="answer-display focus" id="answer-display">${state.inputValue}<span class="cursor-blink"></span></div>
           ` : `
-            <input type="number" id="answer-input" placeholder="Your answer..." autocomplete="off" inputmode="decimal" step="any" />
+            <input type="number" id="answer-input" placeholder="= ?" autocomplete="off" inputmode="decimal" step="any" />
           `}
         </div>
 
@@ -728,13 +699,8 @@ function checkAnswer(userAnswer) {
 function updateStatsUI() {
   const scoreEl = document.getElementById('score');
   const correctEl = document.getElementById('correct');
-  const wrongEl = document.getElementById('wrong');
   if (scoreEl) scoreEl.textContent = state.score;
-  if (scoreEl) scoreEl.closest('.inline-stat')?.setAttribute('title', `Score: ${state.score}`);
   if (correctEl) correctEl.textContent = state.correct;
-  if (correctEl) correctEl.closest('.inline-stat')?.setAttribute('title', `Correct: ${state.correct}`);
-  if (wrongEl) wrongEl.textContent = state.wrong;
-  if (wrongEl) wrongEl.closest('.inline-stat')?.setAttribute('title', `Wrong: ${state.wrong}`);
 }
 
 function updateComboUI() {
@@ -744,13 +710,10 @@ function updateComboUI() {
 
   if (state.combo > 0) {
     if (comboStat) {
-      comboStat.style.display = 'grid';
-      comboStat.title = `Combo: ${state.combo}x • ${state.comboTimer}s left`;
+      comboStat.style.display = 'flex';
       comboStat.classList.toggle('danger', state.comboTimer <= 3);
     }
-    if (comboVal) {
-      comboVal.textContent = state.combo + 'x';
-    }
+    if (comboVal) comboVal.textContent = state.combo + 'x';
     if (comboRingProgress) {
       const progress = Math.max(0, Math.min(1, state.comboTimer / 10));
       comboRingProgress.style.strokeDashoffset = `${COMBO_RING_CIRCUMFERENCE * (1 - progress)}`;
