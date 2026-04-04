@@ -642,8 +642,10 @@ function renderMenu() {
         <div class="menu-panel-left">
           <div class="menu-left-top">
             <div class="header">
+              <div class="title-deco-line"></div>
               <h1>Math Snap</h1>
               <div class="subtitle">${renderLabelIcon('bolt', 'Speed Math Challenge')}</div>
+              <div class="title-formula">∑ · π · √ · ∞ · Δ · θ · λ · φ</div>
             </div>
           </div>
           <div class="menu-left-center">
