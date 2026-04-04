@@ -308,6 +308,13 @@ function isPatternRushInputIntegerOnly(mode = state.gameMode) {
   return isPatternRushMode(mode);
 }
 
+function getPatternRushComboBonus(combo = state.combo, comboTimer = state.comboTimer) {
+  if (combo <= 0) return 0;
+  const comboDuration = getComboDuration(PATTERN_RUSH_MODE);
+  const elapsed = comboDuration - comboTimer;
+  return Math.max(0, (combo * comboDuration) - elapsed);
+}
+
 function renderSessionMeta(level = state.level, gameMode = state.gameMode, operation = state.operation, extraClass = '') {
   const mode = GAME_MODES[gameMode];
   const activeLevel = level || getSelectedDifficultyLevel(gameMode, operation);
@@ -391,7 +398,7 @@ const GUIDE_SECTIONS = [
     ],
     tips: [
       'Jawaban cepat saat combo tinggi paling efektif untuk mengejar skor.',
-      'Kalau ragu terlalu lama, ritme bisa lebih penting daripada memaksa satu soal.',
+      'Di Pattern Rush, tiap level combo membuka bonus cepat sampai +12 lagi, lalu turun 1 poin setiap detik.',
     ],
   },
   {
@@ -451,7 +458,7 @@ const GUIDE_SECTIONS = [
     highlights: [
       ['90 detik tetap', 'Pattern Rush selalu dimainkan dengan timer global 90 detik tanpa bonus atau penalti waktu.'],
       ['Rule engine procedural', 'Sequence dibuat dari family arithmetic, geometric, alternating, second-difference, odd/even, dan Fibonacci-like ringan.'],
-      ['Combo 12 detik', 'Jawaban benar memberi base score +100. Jika combo aktif, bonus tambahan berasal dari sisa timer combo hingga maksimum +12.'],
+      ['Combo 12 detik', 'Jawaban benar memberi base score +100. Saat chain berlanjut, tiap level combo membuka bonus sampai +12 tambahan yang turun 1 poin per detik.'],
     ],
     tips: [
       'Saat salah, soal tetap sama. Gunakan kesempatan itu untuk membaca ulang pola dengan cepat.',
@@ -1740,10 +1747,11 @@ function generatePatternRushPuzzle(level) {
     }
   }
 
-  const emergencyLevel = PATTERN_RUSH_DIFFICULTIES[0];
-  const emergencySequence = generateArithmeticPattern(emergencyLevel, emergencyLevel.sequenceLengths[0] + 1)
-    || [2, 5, 8, 11, 14];
-  return createPatternCandidate(emergencyLevel, 'arithmetic', emergencySequence);
+  const fallbackLength = pickRandom(level.sequenceLengths) + 1;
+  const maxAllowedStep = Math.max(2, Math.floor((level.max - 1) / Math.max(1, fallbackLength - 1)));
+  const step = Math.max(2, Math.min(level.arithmeticStepRange?.[0] || 2, maxAllowedStep));
+  const emergencySequence = Array.from({ length: fallbackLength }, (_, index) => 1 + (step * index));
+  return createPatternCandidate(level, 'arithmetic', emergencySequence);
 }
 
 function generateProblem() {
@@ -1828,7 +1836,7 @@ function checkAnswer(userAnswer) {
 
   if (normalizedAnswer === state.currentAnswer) {
     const bonus = isPatternRushMode()
-      ? (state.combo > 0 ? Math.max(0, Math.floor(state.comboTimer)) : 0)
+      ? getPatternRushComboBonus()
       : Math.max(0, (state.combo * 10) - (getComboDuration() - state.comboTimer));
     const totalAward = CORRECT_SCORE + bonus;
     
