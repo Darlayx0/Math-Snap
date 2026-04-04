@@ -1,0 +1,236 @@
+/* ============================================
+   Problem Display
+   ============================================ */
+.problem-stage {
+  text-align: center;
+  padding: 1.5rem 0 1rem;
+  position: relative;
+}
+
+.problem-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.6rem;
+}
+
+.problem-text {
+  font-size: 3.75rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 3px;
+  color: var(--text-main);
+  transition: transform 0.1s;
+  line-height: 1.2;
+  text-shadow: 0 0 30px rgba(0, 240, 255, 0.08);
+}
+
+.problem-eq-line {
+  width: 60%;
+  max-width: 220px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.15), transparent);
+  margin: 0.85rem auto 0;
+}
+
+.problem-text.pop {
+  animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.7); opacity: 0.3; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================
+   Answer Input
+   ============================================ */
+.input-container {
+  position: relative;
+}
+
+.answer-display {
+  width: 100%;
+  background: rgba(6, 8, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  font-size: 2rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.answer-display.focus {
+  border-color: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.06);
+}
+
+.answer-display .cursor-blink {
+  display: inline-block;
+  width: 2px;
+  height: 1.6rem;
+  background: var(--neon-cyan);
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+  box-shadow: 0 0 4px var(--neon-cyan-dim);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+#answer-input {
+  width: 100%;
+  background: rgba(6, 8, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  font-size: 2rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  outline: none;
+  transition: all 0.3s;
+}
+
+#answer-input::selection {
+  background: rgba(0, 240, 255, 0.18);
+}
+
+#answer-input:focus {
+  border-color: rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.06);
+  background: rgba(8, 11, 22, 0.85);
+}
+
+#answer-input::-webkit-outer-spin-button,
+#answer-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Floating Feedback */
+.floating-feedback {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.3rem;
+  font-weight: 700;
+  animation: floatUp 0.9s ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+  font-family: var(--font-display);
+}
+
+.floating-feedback.success {
+  color: var(--success);
+  text-shadow: 0 0 18px rgba(0, 230, 128, 0.5);
+}
+
+.floating-feedback.error {
+  color: var(--error);
+  text-shadow: 0 0 18px rgba(255, 74, 110, 0.5);
+}
+
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, 15px) scale(0.8); }
+  20% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+  80% { opacity: 1; transform: translate(-50%, -20px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -35px) scale(0.9); }
+}
+
+/* ============================================
+   Calculator Keypad
+   ============================================ */
+.keypad-container {
+  margin-top: 0.5rem;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.key-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  padding: 0.82rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.key-btn:active {
+  transform: scale(0.93);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.key-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.key-btn.key-action {
+  background: rgba(0, 240, 255, 0.04);
+  border-color: rgba(0, 240, 255, 0.1);
+  color: var(--neon-cyan);
+  font-size: 1.1rem;
+}
+
+.key-btn.key-action:active {
+  background: rgba(0, 240, 255, 0.12);
+}
+
+.key-btn.key-submit {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.12), rgba(77, 111, 255, 0.15));
+  border-color: rgba(0, 240, 255, 0.2);
+  color: var(--neon-cyan);
+  font-size: 1rem;
+  letter-spacing: 1.5px;
+  font-weight: 800;
+}
+
+.key-btn.key-submit:active {
+  transform: scale(0.93);
+  box-shadow: 0 2px 12px rgba(0, 240, 255, 0.15);
+}
+
+.key-btn.key-delete {
+  background: rgba(255, 74, 110, 0.04);
+  border-color: rgba(255, 74, 110, 0.1);
+  color: var(--error);
+}
+
+.key-btn.key-delete:active {
+  background: rgba(255, 74, 110, 0.12);
+}
+
+.key-btn.key-clear {
+  background: rgba(255, 184, 0, 0.04);
+  border-color: rgba(255, 184, 0, 0.1);
+  color: var(--neon-amber);
+  font-size: 0.95rem;
+}
+

@@ -1,0 +1,238 @@
+/* ============================================
+   Header
+   ============================================ */
+.header {
+  text-align: center;
+  padding: 0.75rem 0;
+  position: relative;
+}
+
+.header h1 {
+  font-size: 3.2rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  background: linear-gradient(100deg, var(--neon-cyan) 0%, #a0f4ff 22%, #ffffff 42%, #ffa8f8 62%, var(--neon-magenta) 82%, var(--neon-cyan) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -2px;
+  margin-bottom: 0.35rem;
+  filter: drop-shadow(0 0 30px rgba(0, 240, 255, 0.35)) drop-shadow(0 0 60px rgba(255, 44, 241, 0.18));
+  line-height: 1.05;
+  animation: titleShimmer 6s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes titleShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.header .subtitle {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.header .subtitle::before,
+.header .subtitle::after {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.4), transparent);
+  vertical-align: middle;
+  margin: 0 0.6rem;
+}
+
+.title-deco-line {
+  width: 60px;
+  height: 2px;
+  margin: 0 auto 0.5rem;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-magenta), transparent);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.title-formula {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 2.5px;
+  color: rgba(0, 240, 255, 0.22);
+  text-transform: none;
+  animation: formulaGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes formulaGlow {
+  0% { color: rgba(0, 240, 255, 0.18); }
+  100% { color: rgba(255, 44, 241, 0.22); }
+}
+
+.page-header {
+  padding: 0.25rem 0 0.15rem;
+}
+
+.page-header h1 {
+  font-size: 1.32rem;
+  letter-spacing: -0.35px;
+  margin-bottom: 0;
+  filter: drop-shadow(0 0 18px rgba(0, 240, 255, 0.18)) drop-shadow(0 0 28px rgba(255, 44, 241, 0.1));
+}
+
+.game-header-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ui-icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.inline-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.mini-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.control-icon,
+.button-icon,
+.overlay-icon,
+.rule-svg,
+.stats-icon,
+.operation-icon,
+.badge-icon,
+.key-icon,
+.headline-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.operation-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.badge-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.stats-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.control-icon,
+.overlay-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.headline-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.label-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* High Score Bar */
+.high-scores {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: var(--glass-bg);
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-border);
+  margin-top: 0.75rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.high-scores .hs-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.high-scores .hs-icon {
+  color: var(--neon-cyan);
+  display: inline-flex;
+  align-items: center;
+}
+
+.high-scores span {
+  color: var(--neon-amber);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  text-shadow: 0 0 8px var(--neon-amber-dim);
+}
+
+/* ============================================
+   Glass Panel (Shared)
+   ============================================ */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(32px) saturate(1.45);
+  -webkit-backdrop-filter: blur(32px) saturate(1.45);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: center;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle inner glow on glass panels */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.15), rgba(255, 44, 241, 0.1), transparent);
+  z-index: 1;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+

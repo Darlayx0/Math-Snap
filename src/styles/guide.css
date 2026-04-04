@@ -1,0 +1,397 @@
+/* ============================================
+   Guide Modal
+   ============================================ */
+.guide-modal {
+  position: fixed;
+  inset: 0;
+  padding: 1.25rem;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(3, 5, 12, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 9999;
+}
+
+.guide-modal.is-open {
+  display: flex;
+}
+
+.guide-modal-panel {
+  width: 100%;
+  max-width: 960px;
+  padding: 0;
+  max-height: min(92vh, 780px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: left;
+}
+
+.guide-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* â€”â€”â€” Header â€”â€”â€” */
+.guide-header-hero {
+  padding: 1.35rem 1.45rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    radial-gradient(circle at top left, rgba(0, 240, 255, 0.07), transparent 32%),
+    linear-gradient(180deg, rgba(11, 18, 39, 0.94), rgba(7, 12, 27, 0.9));
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.guide-header-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.guide-header-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.guide-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.34rem 0.62rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.guide-header-copy {
+  min-width: 0;
+  max-width: 33rem;
+}
+
+.guide-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.guide-title {
+  font-size: 1.56rem;
+  color: transparent;
+  background: linear-gradient(135deg, #f6fbff 0%, #93ecff 42%, #d8b6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: -0.45px;
+  line-height: 1.08;
+  text-shadow: 0 0 18px rgba(0, 240, 255, 0.08);
+}
+
+.guide-intro {
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 0.88rem;
+  margin-top: 0.1rem;
+  max-width: 30rem;
+  text-wrap: pretty;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.guide-close-btn {
+  flex-shrink: 0;
+  padding: 0.62rem 1.15rem;
+  font-size: 0.82rem;
+  min-width: 110px;
+}
+
+.guide-header-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.guide-summary-chip {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.58rem 0.75rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.guide-summary-value {
+  color: var(--text-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.guide-summary-label {
+  color: var(--text-dim);
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+/* â€”â€”â€” Body Layout â€”â€”â€” */
+.guide-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  padding-top: 0.2rem;
+}
+
+/* â€”â€”â€” Sidebar Nav â€”â€”â€” */
+.guide-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.9rem 0.65rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.guide-nav-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 12px;
+  padding: 0.62rem 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: var(--font-display);
+}
+
+.guide-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.guide-nav-btn.is-active {
+  background: rgba(0, 240, 255, 0.06);
+  border-color: rgba(0, 240, 255, 0.14);
+  color: var(--text-main);
+}
+
+.guide-nav-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--neon-cyan);
+  flex-shrink: 0;
+}
+
+.guide-nav-btn.is-active .guide-nav-icon {
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.guide-nav-svg {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+.guide-nav-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.guide-nav-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.guide-nav-sub {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* â€”â€”â€” Content Panel â€”â€”â€” */
+.guide-content {
+  overflow-y: auto;
+  padding: 1.15rem 1.5rem 1.5rem;
+  min-height: 0;
+}
+
+.guide-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.guide-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.guide-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.guide-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.guide-panel {
+  display: none;
+}
+
+.guide-panel.is-active {
+  display: block;
+  animation: guideSlideIn 0.25s ease-out;
+}
+
+@keyframes guideSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Panel Hero */
+.guide-panel-hero {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.guide-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(0, 240, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.1);
+  color: var(--neon-cyan);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guide-panel-icon {
+  display: inline-flex;
+}
+
+.guide-panel-svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.guide-panel h3 {
+  margin-top: 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+}
+
+.guide-panel p {
+  margin-top: 0.3rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 0.88rem;
+}
+
+/* Highlight Cards */
+.guide-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.6rem;
+}
+
+.guide-highlight-card {
+  padding: 0.85rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.guide-highlight-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.guide-highlight-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.3rem;
+}
+
+.guide-highlight-body {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Tip Box */
+.guide-tip-box {
+  margin-top: 1.15rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(255, 184, 0, 0.04);
+  border: 1px solid rgba(255, 184, 0, 0.1);
+}
+
+.guide-tip-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--neon-amber);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.guide-tip-list {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--text-muted);
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.guide-tip-list li::marker {
+  color: var(--text-dim);
+}
+

@@ -1,0 +1,59 @@
+/* ============================================
+   MATH SNAP â€” "Neon Logic" Design System
+   Theme: Precision Luminance
+   ============================================ */
+
+:root {
+  /* Core Neon Palette */
+  --neon-cyan: #00f0ff;
+  --neon-cyan-dim: rgba(0, 240, 255, 0.5);
+  --neon-magenta: #ff2cf1;
+  --neon-magenta-dim: rgba(255, 44, 241, 0.4);
+  --neon-lime: #b8ff00;
+  --neon-lime-dim: rgba(184, 255, 0, 0.4);
+  --neon-amber: #ffb800;
+  --neon-amber-dim: rgba(255, 184, 0, 0.4);
+  --neon-blue: #4d6fff;
+
+  /* Background Layers */
+  --bg-void: #07060f;
+  --bg-deep: #0b0a14;
+  --bg-gradient: linear-gradient(160deg, #07060f 0%, #0d0c1e 35%, #110a20 65%, #0a0916 100%);
+  --bg-radial-accent: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0, 240, 255, 0.04) 0%, transparent 60%);
+
+  /* Glass */
+  --glass-bg: rgba(14, 18, 34, 0.74);
+  --glass-bg-strong: rgba(18, 24, 44, 0.88);
+  --glass-bg-hover: rgba(24, 30, 54, 0.94);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-hover: rgba(255, 255, 255, 0.2);
+  --glass-border-active: rgba(0, 240, 255, 0.25);
+
+  /* Text */
+  --text-main: #f6f8ff;
+  --text-muted: #b8bed7;
+  --text-dim: #7f86a9;
+
+  /* Semantic Colors */
+  --success: #00e680;
+  --error: #ff4a6e;
+  --warning: #ffb800;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 100px;
+
+  /* Shadows */
+  --shadow-card: 0 8px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-neon-cyan: 0 0 30px rgba(0, 240, 255, 0.12), 0 0 60px rgba(0, 240, 255, 0.05);
+  --shadow-neon-magenta: 0 0 30px rgba(255, 44, 241, 0.1), 0 0 60px rgba(255, 44, 241, 0.04);
+  --shadow-btn: 0 4px 24px rgba(0, 240, 255, 0.25);
+
+  /* Fonts */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+

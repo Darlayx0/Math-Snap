@@ -1,0 +1,323 @@
+/* ============================================
+   Game Screen
+   ============================================ */
+.game-screen {
+  gap: 0 !important;
+  padding: 1rem 1.25rem 1.5rem !important;
+}
+
+.game-active .header { display: none; }
+
+.game-active .game-header-top {
+  display: block;
+  padding: 0.05rem 0 0.45rem;
+}
+
+.session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.session-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.52rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(13, 20, 39, 0.88), rgba(9, 14, 27, 0.78));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.session-meta-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.session-meta-icon {
+  width: 0.82rem;
+  height: 0.82rem;
+  flex-shrink: 0;
+}
+
+.session-meta-chip.meta-mode {
+  color: var(--neon-cyan);
+  border-color: rgba(0, 240, 255, 0.2);
+}
+
+.session-meta-chip.meta-tier {
+  color: #ffd36b;
+  border-color: rgba(255, 184, 0, 0.2);
+}
+
+.session-meta-chip.meta-tier.difficulty-tier-easy {
+  color: #7af0b6;
+  border-color: rgba(101, 240, 164, 0.24);
+  background: linear-gradient(180deg, rgba(13, 28, 23, 0.92), rgba(8, 20, 17, 0.84));
+}
+
+.session-meta-chip.meta-tier.difficulty-tier-normal {
+  color: #8fc7ff;
+  border-color: rgba(116, 184, 255, 0.24);
+  background: linear-gradient(180deg, rgba(13, 22, 37, 0.92), rgba(8, 16, 27, 0.84));
+}
+
+.session-meta-chip.meta-tier.difficulty-tier-hard {
+  color: #ffd36b;
+  border-color: rgba(255, 211, 107, 0.24);
+  background: linear-gradient(180deg, rgba(34, 26, 12, 0.92), rgba(24, 18, 8, 0.84));
+}
+
+.session-meta-chip.meta-tier.difficulty-tier-expert {
+  color: #ff9cb2;
+  border-color: rgba(255, 111, 140, 0.24);
+  background: linear-gradient(180deg, rgba(36, 15, 22, 0.92), rgba(25, 10, 15, 0.84));
+}
+
+.session-meta-chip.meta-tier.difficulty-tier-master {
+  color: #cf9cff;
+  border-color: rgba(198, 133, 255, 0.24);
+  background: linear-gradient(180deg, rgba(29, 16, 39, 0.92), rgba(19, 10, 28, 0.84));
+}
+
+.session-meta-chip.meta-operation {
+  color: #f1f5ff;
+  border-color: rgba(255, 255, 255, 0.1);
+  max-width: min(100%, 350px);
+}
+
+.session-meta-end {
+  margin: -0.15rem 0 0.85rem;
+}
+
+/* ——— Overdrive HUD ——— */
+.overdrive-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.25rem;
+  margin-bottom: 0.8rem;
+}
+
+.overdrive-hud-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(10, 15, 25, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+  font-family: var(--font-number);
+}
+
+.overdrive-hud-label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--font-main);
+}
+
+.overdrive-hud-val {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* â€”â€”â€” HUD Strip â€”â€”â€” */
+.game-hud {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 0.2rem;
+}
+
+.hud-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.hud-mode {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.hud-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.hud-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.ht-time {
+  justify-content: flex-start;
+}
+
+.ht-score {
+  justify-content: center;
+}
+
+.ht-correct {
+  justify-content: flex-end;
+}
+
+.hud-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.hud-svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.ht-time .hud-icon, .ht-time .hud-val { color: var(--neon-cyan); }
+.ht-score .hud-icon, .ht-score .hud-val { color: var(--neon-amber); }
+.ht-correct .hud-icon, .ht-correct .hud-val { color: var(--success); }
+.ht-progress .hud-icon, .ht-progress .hud-val { color: var(--neon-lime); }
+
+.ht-time .hud-icon { opacity: 0.8; }
+.ht-score .hud-icon { opacity: 0.7; }
+.ht-correct .hud-icon { opacity: 0.7; }
+.ht-progress .hud-icon { opacity: 0.72; }
+
+/* Combo Arc */
+.hud-combo-wrap {
+  position: relative;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.combo-arc {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.combo-arc-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 2.5;
+}
+
+.combo-arc-fill {
+  fill: none;
+  stroke: var(--neon-magenta);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+}
+
+.combo-val {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 10px var(--neon-magenta-dim);
+  z-index: 1;
+}
+
+.hud-combo-wrap.danger .combo-arc-fill {
+  stroke: var(--error);
+}
+.hud-combo-wrap.danger .combo-val {
+  color: var(--error);
+  text-shadow: 0 0 10px rgba(255, 74, 110, 0.5);
+  animation: pulseText 0.6s ease-in-out infinite;
+}
+
+/* Pause */
+.pause-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.pause-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--neon-cyan);
+  border-color: rgba(0, 240, 255, 0.2);
+}
+
+.button-icon {
+  margin-right: 0.45rem;
+}
+
+.overlay-icon {
+  color: var(--neon-cyan);
+}
+
+.key-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.rule-svg {
+  color: var(--neon-cyan);
+}
+
+/* Timer warning */
+.hud-cell .hud-val.time-warn,
+.hud-cell.time-warn .hud-val {
+  color: var(--error) !important;
+  text-shadow: 0 0 12px rgba(255, 74, 110, 0.5);
+  animation: pulseText 0.6s ease-in-out infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
