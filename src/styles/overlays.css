@@ -400,6 +400,7 @@
   }
   .input-container { margin-bottom: 0.25rem; }
   .game-footer-dock {
+    display: block;
     position: fixed;
     left: 0;
     right: 0;
@@ -411,6 +412,7 @@
     pointer-events: none;
   }
   .keypad-footer-shell {
+    display: block;
     max-width: 560px;
     margin: 0 auto;
     padding: 0.72rem;
@@ -490,6 +492,7 @@
     letter-spacing: 1.15px;
   }
   .game-footer-dock {
+    display: block;
     position: fixed;
     left: 0;
     right: 0;
@@ -501,6 +504,7 @@
     pointer-events: none;
   }
   .keypad-footer-shell {
+    display: block;
     max-width: 640px;
     margin: 0 auto;
     padding: 0.78rem;

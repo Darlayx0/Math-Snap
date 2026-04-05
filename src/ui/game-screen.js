@@ -291,20 +291,32 @@ export function fitProblemText(element, isPatternMode) {
   const container = element.parentElement;
   if (!container) return;
   const isCompactViewport = window.matchMedia(MOBILE_BREAKPOINT).matches;
-  const textLength = (element.textContent || '').trim().length;
+  const rawText = (element.textContent || '').trim();
+  const textLength = rawText.length;
+  const digitsCount = (rawText.match(/\d/g) || []).length;
+  const separatorCount = (rawText.match(/[.,]/g) || []).length;
+  const operatorCount = (rawText.match(/[+\-×÷]/g) || []).length;
+  const longestChunk = rawText
+    .split(/\s+/)
+    .reduce((max, chunk) => Math.max(max, chunk.length), 0);
+  const visualWeight = textLength
+    + Math.max(0, digitsCount - 8) * 0.75
+    + Math.max(0, separatorCount - 1) * 0.45
+    + Math.max(0, longestChunk - 6) * 1.2
+    + Math.max(0, operatorCount - 1) * 0.35;
 
   const getBaseSizes = () => {
     if (isPatternMode) {
-      if (textLength <= 18) return isCompactViewport ? [3.7, 3.35, 3, 2.7, 2.4, 2.1] : [4.15, 3.8, 3.45, 3.1, 2.75, 2.4];
-      if (textLength <= 32) return isCompactViewport ? [3.35, 3.05, 2.75, 2.45, 2.15, 1.9] : [3.8, 3.45, 3.1, 2.8, 2.45, 2.15];
-      if (textLength <= 48) return isCompactViewport ? [3.05, 2.75, 2.45, 2.15, 1.92, 1.75] : [3.4, 3.05, 2.75, 2.45, 2.15, 1.9];
-      return isCompactViewport ? [2.7, 2.45, 2.2, 1.95, 1.76, 1.6] : [3.05, 2.8, 2.5, 2.2, 1.95, 1.72];
+      if (visualWeight <= 18) return isCompactViewport ? [3.95, 3.55, 3.15, 2.8, 2.45, 2.12] : [4.35, 3.95, 3.55, 3.18, 2.8, 2.42];
+      if (visualWeight <= 30) return isCompactViewport ? [3.35, 3.02, 2.72, 2.42, 2.12, 1.88] : [3.8, 3.42, 3.05, 2.72, 2.38, 2.08];
+      if (visualWeight <= 42) return isCompactViewport ? [2.95, 2.68, 2.38, 2.12, 1.9, 1.72] : [3.35, 3.02, 2.68, 2.38, 2.08, 1.84];
+      return isCompactViewport ? [2.55, 2.32, 2.1, 1.92, 1.74, 1.58] : [2.95, 2.68, 2.38, 2.1, 1.88, 1.68];
     }
 
-    if (textLength <= 14) return isCompactViewport ? [4.35, 4, 3.6, 3.2, 2.8, 2.45] : [4.85, 4.4, 3.95, 3.5, 3.1, 2.7];
-    if (textLength <= 26) return isCompactViewport ? [4.05, 3.65, 3.25, 2.9, 2.55, 2.2] : [4.5, 4.05, 3.6, 3.2, 2.8, 2.45];
-    if (textLength <= 40) return isCompactViewport ? [3.7, 3.3, 2.95, 2.6, 2.28, 2] : [4.15, 3.7, 3.3, 2.95, 2.6, 2.25];
-    return isCompactViewport ? [3.25, 2.9, 2.6, 2.3, 2.02, 1.82] : [3.75, 3.35, 3, 2.65, 2.32, 2.05];
+    if (visualWeight <= 14) return isCompactViewport ? [4.45, 4.05, 3.65, 3.25, 2.88, 2.52] : [4.95, 4.48, 4.02, 3.58, 3.16, 2.74];
+    if (visualWeight <= 20) return isCompactViewport ? [3.7, 3.35, 3.02, 2.72, 2.42, 2.12] : [4.18, 3.78, 3.38, 3.02, 2.68, 2.34];
+    if (visualWeight <= 28) return isCompactViewport ? [3.18, 2.88, 2.58, 2.3, 2.05, 1.84] : [3.62, 3.28, 2.95, 2.62, 2.3, 2.02];
+    return isCompactViewport ? [2.82, 2.56, 2.3, 2.08, 1.9, 1.74] : [3.2, 2.92, 2.62, 2.32, 2.08, 1.84];
   };
 
   const baseSizes = getBaseSizes();
@@ -329,6 +341,9 @@ export function animateProblem(state) {
     element.classList.remove('pop');
     void element.offsetWidth;
     fitProblemText(element, state.gameMode === PATTERN_RUSH_MODE);
+    requestAnimationFrame(() => {
+      fitProblemText(element, state.gameMode === PATTERN_RUSH_MODE);
+    });
     element.classList.add('pop');
   }
 }
