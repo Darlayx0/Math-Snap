@@ -175,9 +175,15 @@ export function renderGame(app, state, actions) {
             <input type="text" id="answer-input" value="${state.inputValue}" autocomplete="off" inputmode="${isPattern ? 'numeric' : 'decimal'}" spellcheck="false" />
           `}
         </div>
-
-        ${state.useKeypad ? renderKeypad(state) : ''}
       </div>
+
+      ${state.useKeypad ? `
+        <div class="game-footer-dock">
+          <div class="keypad-footer-shell">
+            ${renderKeypad(state)}
+          </div>
+        </div>
+      ` : ''}
     </div>
   `;
 
@@ -285,19 +291,34 @@ export function fitProblemText(element, isPatternMode) {
   const container = element.parentElement;
   if (!container) return;
   const isCompactViewport = window.matchMedia(MOBILE_BREAKPOINT).matches;
-  const baseSizes = isPatternMode
-    ? (isCompactViewport ? [3.35, 3.05, 2.75, 2.45, 2.15, 1.85] : [3.55, 3.15, 2.8, 2.45, 2.1, 1.8])
-    : (isCompactViewport ? [3.95, 3.55, 3.15, 2.75, 2.35, 1.95] : [4.2, 3.8, 3.35, 2.95, 2.5, 2.05]);
-  const maxLines = isCompactViewport ? 4.25 : 3.25;
+  const textLength = (element.textContent || '').trim().length;
+
+  const getBaseSizes = () => {
+    if (isPatternMode) {
+      if (textLength <= 18) return isCompactViewport ? [3.7, 3.35, 3, 2.7, 2.4, 2.1] : [4.15, 3.8, 3.45, 3.1, 2.75, 2.4];
+      if (textLength <= 32) return isCompactViewport ? [3.35, 3.05, 2.75, 2.45, 2.15, 1.9] : [3.8, 3.45, 3.1, 2.8, 2.45, 2.15];
+      if (textLength <= 48) return isCompactViewport ? [3.05, 2.75, 2.45, 2.15, 1.92, 1.75] : [3.4, 3.05, 2.75, 2.45, 2.15, 1.9];
+      return isCompactViewport ? [2.7, 2.45, 2.2, 1.95, 1.76, 1.6] : [3.05, 2.8, 2.5, 2.2, 1.95, 1.72];
+    }
+
+    if (textLength <= 14) return isCompactViewport ? [4.35, 4, 3.6, 3.2, 2.8, 2.45] : [4.85, 4.4, 3.95, 3.5, 3.1, 2.7];
+    if (textLength <= 26) return isCompactViewport ? [4.05, 3.65, 3.25, 2.9, 2.55, 2.2] : [4.5, 4.05, 3.6, 3.2, 2.8, 2.45];
+    if (textLength <= 40) return isCompactViewport ? [3.7, 3.3, 2.95, 2.6, 2.28, 2] : [4.15, 3.7, 3.3, 2.95, 2.6, 2.25];
+    return isCompactViewport ? [3.25, 2.9, 2.6, 2.3, 2.02, 1.82] : [3.75, 3.35, 3, 2.65, 2.32, 2.05];
+  };
+
+  const baseSizes = getBaseSizes();
+  const maxLines = isCompactViewport ? 4.7 : 3.7;
+  const maxHeight = Math.max(120, container.clientHeight * (isCompactViewport ? 0.95 : 0.84));
 
   for (const size of baseSizes) {
     element.style.fontSize = `${size}rem`;
     const computed = window.getComputedStyle(element);
-    const lineHeight = Number.parseFloat(computed.lineHeight) || (size * 16 * 1.2);
+    const lineHeight = Number.parseFloat(computed.lineHeight) || (size * 16 * 1.14);
     const lineCount = element.scrollHeight / lineHeight;
-    if (lineCount <= maxLines) return;
+    if (lineCount <= maxLines && element.scrollHeight <= maxHeight) return;
   }
-  element.style.fontSize = isCompactViewport ? '1.85rem' : '2rem';
+  element.style.fontSize = isCompactViewport ? '1.58rem' : '1.7rem';
 }
 
 export function animateProblem(state) {
