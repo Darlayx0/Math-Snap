@@ -1,5 +1,5 @@
 import { GAME_MODES } from '../config/modes.js';
-import { OVERDRIVE_MULTIPLIERS, COMBO_RING_CIRCUMFERENCE, COMBO_RING_RADIUS } from '../config/constants.js';
+import { COMBO_RING_CIRCUMFERENCE, COMBO_RING_RADIUS } from '../config/constants.js';
 import { PATTERN_RUSH_MODE } from '../config/pattern-rush.js';
 import { formatElapsedMs, getProgressLabel, isRaceMode } from '../engine/timer.js';
 import { getComboDuration } from '../engine/combo.js';
@@ -16,6 +16,8 @@ import {
   renderModeIcon,
   renderOperationIcon,
 } from './icons.js';
+
+const MOBILE_BREAKPOINT = '(max-width: 768px)';
 
 export function renderSessionMeta(state, level = state.level, extraClass = '') {
   const mode = GAME_MODES[state.gameMode];
@@ -53,10 +55,32 @@ export function renderSessionMeta(state, level = state.level, extraClass = '') {
   `;
 }
 
-function renderPatternRushKeypad() {
+function renderSharedKeypad(options = {}) {
+  const {
+    showDecimal = false,
+    decimalDisabled = false,
+    showNegative = false,
+  } = options;
+
+  const decimalMarkup = showDecimal
+    ? `<button class="key-btn key-action ${decimalDisabled ? 'key-disabled' : ''}" data-key="decimal" ${decimalDisabled ? 'disabled' : ''}>,</button>`
+    : '';
+
+  const bottomRowClass = showNegative ? '' : ' keypad-bottom-simple';
+  const bottomRowMarkup = showNegative
+    ? `
+      <button class="key-btn key-action" data-key="neg">+/-</button>
+      <button class="key-btn" data-key="0">0</button>
+      <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">Submit</button>
+    `
+    : `
+      <button class="key-btn keypad-zero-wide" data-key="0">0</button>
+      <button class="key-btn key-submit keypad-submit-wide" data-key="submit">Submit</button>
+    `;
+
   return `
     <div class="keypad-container">
-      <div class="keypad">
+      <div class="keypad${bottomRowClass}">
         <button class="key-btn" data-key="7">7</button>
         <button class="key-btn" data-key="8">8</button>
         <button class="key-btn" data-key="9">9</button>
@@ -68,43 +92,23 @@ function renderPatternRushKeypad() {
         <button class="key-btn" data-key="1">1</button>
         <button class="key-btn" data-key="2">2</button>
         <button class="key-btn" data-key="3">3</button>
-        <button class="key-btn key-submit" data-key="submit">Submit</button>
-        <button class="key-btn" data-key="0" style="grid-column: span 4;">0</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderClassicKeypad(state) {
-  const decimalKey = state.operation === 'division'
-    ? '<button class="key-btn key-action" data-key="decimal">,</button>'
-    : '<button class="key-btn key-action key-disabled" data-key="decimal" disabled>,</button>';
-
-  return `
-    <div class="keypad-container">
-      <div class="keypad">
-        <button class="key-btn" data-key="7">7</button>
-        <button class="key-btn" data-key="8">8</button>
-        <button class="key-btn" data-key="9">9</button>
-        <button class="key-btn key-delete" data-key="del">${renderIcon('delete', 'key-icon')}</button>
-        <button class="key-btn" data-key="4">4</button>
-        <button class="key-btn" data-key="5">5</button>
-        <button class="key-btn" data-key="6">6</button>
-        <button class="key-btn key-clear" data-key="clear">CLR</button>
-        <button class="key-btn" data-key="1">1</button>
-        <button class="key-btn" data-key="2">2</button>
-        <button class="key-btn" data-key="3">3</button>
-        ${decimalKey}
-        <button class="key-btn key-action" data-key="neg">+/-</button>
-        <button class="key-btn" data-key="0">0</button>
-        <button class="key-btn key-submit" data-key="submit" style="grid-column: span 2;">Submit</button>
+        ${decimalMarkup}
+        ${bottomRowMarkup}
       </div>
     </div>
   `;
 }
 
 function renderKeypad(state) {
-  return state.gameMode === PATTERN_RUSH_MODE ? renderPatternRushKeypad() : renderClassicKeypad(state);
+  if (state.gameMode === PATTERN_RUSH_MODE) {
+    return renderSharedKeypad();
+  }
+
+  return renderSharedKeypad({
+    showDecimal: true,
+    decimalDisabled: state.operation !== 'division',
+    showNegative: true,
+  });
 }
 
 export function renderGame(app, state, actions) {
@@ -178,6 +182,8 @@ export function renderGame(app, state, actions) {
   `;
 
   document.getElementById('pause-btn')?.addEventListener('click', actions.pauseGame);
+  document.removeEventListener('keydown', actions.handlePhysicalKeyboard);
+  document.addEventListener('keydown', actions.handlePhysicalKeyboard);
 
   if (state.useKeypad) {
     document.querySelectorAll('.key-btn').forEach((button) => {
@@ -186,19 +192,12 @@ export function renderGame(app, state, actions) {
         actions.handleKeypadPress(button.dataset.key);
       });
     });
-    document.addEventListener('keydown', actions.handlePhysicalKeyboard);
   } else {
     const input = document.getElementById('answer-input');
     if (input) {
       updateAnswerInput(state.inputValue);
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
-      input.addEventListener('keydown', (event) => {
-        const handled = actions.handleSharedInputKey(event.key);
-        if (handled) {
-          event.preventDefault();
-        }
-      });
       input.addEventListener('input', () => {
         actions.handleDesktopInputChange(input.value);
       });
@@ -285,15 +284,20 @@ export function updateComboUI(state) {
 export function fitProblemText(element, isPatternMode) {
   const container = element.parentElement;
   if (!container) return;
-  const maxWidth = container.clientWidth - 8;
+  const isCompactViewport = window.matchMedia(MOBILE_BREAKPOINT).matches;
   const baseSizes = isPatternMode
-    ? [3.1, 2.7, 2.35, 2.05, 1.75, 1.45]
-    : [3.75, 3.3, 2.9, 2.4, 1.95, 1.45];
+    ? (isCompactViewport ? [3.35, 3.05, 2.75, 2.45, 2.15, 1.85] : [3.55, 3.15, 2.8, 2.45, 2.1, 1.8])
+    : (isCompactViewport ? [3.95, 3.55, 3.15, 2.75, 2.35, 1.95] : [4.2, 3.8, 3.35, 2.95, 2.5, 2.05]);
+  const maxLines = isCompactViewport ? 4.25 : 3.25;
+
   for (const size of baseSizes) {
     element.style.fontSize = `${size}rem`;
-    if (element.scrollWidth <= maxWidth) return;
+    const computed = window.getComputedStyle(element);
+    const lineHeight = Number.parseFloat(computed.lineHeight) || (size * 16 * 1.2);
+    const lineCount = element.scrollHeight / lineHeight;
+    if (lineCount <= maxLines) return;
   }
-  element.style.fontSize = '1.45rem';
+  element.style.fontSize = isCompactViewport ? '1.85rem' : '2rem';
 }
 
 export function animateProblem(state) {

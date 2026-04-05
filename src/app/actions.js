@@ -137,11 +137,8 @@ function checkAnswer(userAnswer) {
 }
 
 function focusCurrentInput() {
-  if (state.useKeypad) {
-    document.addEventListener('keydown', handlePhysicalKeyboard);
-    return;
-  }
-
+  document.removeEventListener('keydown', handlePhysicalKeyboard);
+  document.addEventListener('keydown', handlePhysicalKeyboard);
   const input = document.getElementById('answer-input');
   if (input) {
     input.focus();
@@ -227,6 +224,9 @@ export function handleSharedInputKey(key) {
 export function handlePhysicalKeyboard(event) {
   if (state.screen !== 'playing') {
     document.removeEventListener('keydown', handlePhysicalKeyboard);
+    return;
+  }
+  if (event.metaKey || event.ctrlKey || event.altKey) {
     return;
   }
   if (handleSharedInputKey(event.key)) {

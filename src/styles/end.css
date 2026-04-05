@@ -17,14 +17,19 @@
 }
 
 .problem-text {
-  font-size: 3.75rem;
+  font-size: 4rem;
   font-weight: 700;
   font-family: var(--font-mono);
-  letter-spacing: 3px;
+  letter-spacing: 1.6px;
   color: var(--text-main);
   transition: transform 0.1s;
-  line-height: 1.2;
+  line-height: 1.12;
   text-shadow: 0 0 30px rgba(0, 240, 255, 0.08);
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .problem-eq-line {
@@ -164,6 +169,14 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.4rem;
+}
+
+.keypad-bottom-simple .keypad-zero-wide {
+  grid-column: span 2;
+}
+
+.keypad-bottom-simple .keypad-submit-wide {
+  grid-column: span 2;
 }
 
 .key-btn {
